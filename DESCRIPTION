@@ -1,0 +1,39 @@
+Package: SurvBregDiv
+Type: Package
+Title: Transfer Learning for Cox Models via Bregman Divergence
+Version: 1.0.0
+URL: https://um-kevinhe.github.io/SurvBregDiv/
+Authors@R: c(
+    person("Yubo","Shao",role=c("aut","cre"),email="ybshao@umich.edu")
+  )
+Description: Transfer Learning for Time-to-Event Modelling via Bregman Divergence. 
+    The package supports both low-dimensional and high-dimensional settings to 
+    leverage external summary statistics or auxiliary data.
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+License: GPL-3
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
+Imports:
+    Rcpp,
+    ggplot2,
+    stats,
+    cowplot,
+    Matrix,
+    rlang,
+    riskRegression,
+    dplyr,
+    reshape2,
+    survival,
+    MASS,
+    mvtnorm
+Depends:
+    R (>= 4.0)
+Suggests:
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+SystemRequirements: GNU make

@@ -1,0 +1,291 @@
+#' Fit Cox Model with Multi-Domain Transfer Learning and Elastic Net Penalty
+#'
+#' @description
+#' Fits a Cox Proportional Hazards model that integrates external information (Transfer Learning)
+#' using an Elastic Net regularization path. The method incorporates prior knowledge from
+#' external coefficients (\code{beta}) and an optional weight matrix (\code{vcov}), controlled
+#' by the transfer learning parameter \code{eta}.
+#'
+#' The objective function minimizes the negative partial likelihood plus a transfer learning
+#' penalty term \eqn{\eta (\beta - \beta_{ext})^T Q (\beta - \beta_{ext})} and the
+#' Elastic Net penalty.
+#'
+#' @param z Matrix of predictors (n x p).
+#' @param delta Vector of event indicators (1 for event, 0 for censored).
+#' @param time Vector of observed survival times.
+#' @param stratum Vector indicating the stratum membership. If NULL, all observations are assumed to be in the same stratum.
+#' @param beta Vector of external coefficients (length p). This represents the prior knowledge or "source" model coefficients.
+#' @param vcov Optional weighting matrix (p x p) for the external information. Typically the inverse covariance matrix (precision matrix) of the external estimator. If NULL, defaults to the identity matrix.
+#' @param eta Scalar. The transfer learning parameter (>= 0). Controls the strength of the external information. \code{eta = 0} ignores external info.
+#' @param alpha The Elastic Net mixing parameter, with \eqn{0 \le \alpha \le 1}. \code{alpha=1} is the lasso penalty, and \code{alpha=0} the ridge penalty.
+#' @param lambda Optional user-supplied lambda sequence. If NULL, the algorithm generates its own sequence.
+#' @param nlambda The number of lambda values. Default is 100.
+#' @param lambda.min.ratio Smallest value for lambda, as a fraction of lambda.max. Default depends on sample size relative to features.
+#' @param lambda.early.stop Logical. Whether to stop early if the deviance changes minimally.
+#' @param tol Convergence threshold for coordinate descent.
+#' @param Mstop Maximum number of iterations per lambda step.
+#' @param max.total.iter Maximum total iterations across all lambda values.
+#' @param group Vector describing the grouping of the coefficients. Default is \code{1:ncol(z)} (no grouping).
+#' @param group.multiplier Vector of multipliers for each group size.
+#' @param standardize Logical. Should the predictors be standardized before fitting? Default is TRUE.
+#' @param nvar.max Maximum number of variables allowed in the model.
+#' @param group.max Maximum number of groups allowed in the model.
+#' @param stop.loss.ratio Ratio of loss change to stop the path early.
+#' @param actSet Logical. Whether to use active set convergence strategy.
+#' @param actIter Number of iterations for active set.
+#' @param actGroupNum Number of active groups.
+#' @param actSetRemove Logical. Whether to remove inactive groups from the active set.
+#' @param returnX Logical. If TRUE, returns the standardized design matrix and other data details.
+#' @param trace.lambda Logical. If TRUE, prints the current lambda during fitting.
+#' @param message Logical. If TRUE, prints warnings and progress messages.
+#' @param data_sorted Logical. Internal flag indicating if data is already sorted by time/stratum.
+#' @param ... Additional arguments.
+#'
+#' @return An object of class \code{"cox_MDTL_enet"} containing:
+#' \itemize{
+#'   \item \code{beta}: Matrix of estimated coefficients (p x nlambda).
+#'   \item \code{lambda}: The sequence of lambda values used.
+#'   \item \code{likelihood}: Vector of negative partial log-likelihood values.
+#'   \item \code{df}: Degrees of freedom for each lambda.
+#'   \item \code{W}: Matrix of exponential linear predictors.
+#'   \item \code{iter}: Number of iterations for each lambda.
+#'   \item \code{data}: List of input data.
+#' }
+#'
+#' @examples
+#' \donttest{
+#' data(ExampleData_highdim)
+#' train_dat_highdim <- ExampleData_highdim$train
+#' beta_external_highdim <- ExampleData_highdim$beta_external
+#' 
+#' cox_MDTL_enet_est <- cox_MDTL_enet(
+#'   z = train_dat_highdim$z,
+#'   delta = train_dat_highdim$status,
+#'   time = train_dat_highdim$time,
+#'   stratum = train_dat_highdim$stratum,
+#'   beta = beta_external_highdim,
+#'   vcov = NULL,
+#'   eta = 0,
+#'   alpha = 1
+#' )
+#' }
+#' @export
+cox_MDTL_enet <- function(z, delta, time, stratum = NULL, 
+                          beta, vcov = NULL, 
+                          eta = NULL, 
+                          alpha = NULL, lambda = NULL, nlambda = 100, lambda.min.ratio = ifelse(n < p, 0.05, 1e-03), 
+                          lambda.early.stop = FALSE, tol = 1.0e-4, Mstop = 1000, max.total.iter = (Mstop * nlambda), 
+                          group = 1:ncol(z), group.multiplier = NULL, standardize = T, 
+                          nvar.max = ncol(z), group.max = length(unique(group)), stop.loss.ratio = 1e-2, 
+                          actSet = TRUE, actIter = Mstop, actGroupNum = sum(unique(group) != 0), actSetRemove = F,
+                          returnX = FALSE, trace.lambda = FALSE, message = FALSE, data_sorted = FALSE, ...){
+  
+  if (is.null(alpha)){
+    warning("alpha is not provided. Setting alpha = 1 (lasso penalty).", call. = FALSE)
+    alpha <- 1
+  } else if (alpha > 1 | alpha <= 0) {
+    stop("alpha must be in (0, 1]", call.=FALSE)
+  }
+  
+  if (is.null(eta)){
+    warning("eta is not provided. Setting eta = 0 (no external information used).", call. = FALSE)
+    eta <- 0
+  } else {
+    if (!is.finite(eta) || eta < 0 || length(eta) != 1) {
+      stop("eta must be a non-negative scalar.", call.=FALSE)
+    }
+  }
+
+  if (length(beta) != ncol(z)) {
+    stop("Error: The dimension of external beta does not match the number of columns in z.")
+  }
+  
+  if (is.null(vcov)){
+    Q <- diag(ncol(z))
+  } else {
+    if (nrow(vcov) != ncol(z) || ncol(vcov) != ncol(z)) {
+      stop("Error: The dimension of external variance-covariance does not match the number of columns in z.")
+    }
+    Q <- vcov
+  }
+
+  z <- as.matrix(z)
+  delta <- as.numeric(delta)
+  time <- as.numeric(time)
+  
+  input_data <- list(z = z, time = time, delta = delta, stratum = stratum)
+  
+  if (!data_sorted) {
+    if (is.null(stratum)) {
+      if (message) warning("Stratum information not provided. All data is assumed to originate from a single stratum!", call. = FALSE)
+      stratum <- rep(1, nrow(z))
+    } else {
+      stratum <- match(stratum, unique(stratum))
+    }
+    time_order <- order(stratum, time)
+    time <- as.numeric(time[time_order])
+    stratum <- as.numeric(stratum[time_order])
+    z <- as.matrix(z)[time_order, , drop = FALSE]
+    delta <- as.numeric(delta[time_order])
+  } else {
+    stratum <- as.numeric(stratum)
+  }
+  
+  n.each_stratum <- as.numeric(table(stratum))
+  
+  initial.group <- group
+  if (standardize == T){
+    std.Z <- newZG.Std(z, group, group.multiplier)
+  } else {
+    std.Z <- newZG.Unstd(z, group, group.multiplier)
+  }
+  Z <- std.Z$std.Z[, , drop = F]
+  
+  #orthogonal transformation for external information
+  ord <- if (isTRUE(std.Z$reorder)) std.Z$ord else seq_len(ncol(Z))
+  Q    <- Q[ord, ord, drop = FALSE]
+  beta <- beta[ord]
+  
+  if (isTRUE(standardize)) {
+    D <- diag(std.Z$scale[ord], ncol(Z))
+    Q_std    <- as.matrix(D %*% Q %*% D)
+    beta_std <- as.vector(D %*% beta)
+  } else {
+    Q_std    <- Q
+    beta_std <- beta
+  }
+  
+  Tmat <- get_T_from_stdZ(std.Z)
+  Tinv <- solve(Tmat)            
+  
+  Q_prime         <- as.matrix(t(Tinv) %*% Q_std %*% Tinv)
+  beta_ext_prime  <- as.vector(Tinv %*% beta_std)
+  Qbeta_ext_prime <- as.vector(Q_prime %*% beta_ext_prime)
+
+  
+  group <- std.Z$g  
+  group.multiplier <- std.Z$m 
+  p <- ncol(Z)
+  n <- length(delta)
+  nvar.max <- as.integer(nvar.max)
+  group.max <- as.integer(group.max)
+  
+  beta.init <- rep(0, ncol(Z))
+
+  
+  if (is.null(lambda)) {
+    if (nlambda < 2) {
+      stop("nlambda must be at least 2", call. = FALSE)
+    } else if (nlambda != round(nlambda)){
+      stop("nlambda must be a positive integer", call. = FALSE)
+    }
+    lambda.fit <- setupLambda_MDTL(Z, time, delta, beta.init, stratum,
+                                   beta_ext_prime, Q_prime, Qbeta_ext_prime,
+                                   group, group.multiplier, n.each_stratum,
+                                   alpha, eta, nlambda, lambda.min.ratio)
+    
+    lambda.seq <- lambda.fit$lambda.seq
+    beta <- lambda.fit$beta
+  } else {
+    nlambda <- length(lambda)  
+    lambda.seq <- as.vector(sort(lambda, decreasing = TRUE))
+    beta <- beta.init
+  }
+  
+  K <- as.integer(table(group))
+  K0 <- as.integer(if (min(group) == 0) K[1] else 0)
+  K1 <- as.integer(if (min(group) == 0) cumsum(K) else c(0, cumsum(K)))
+  
+  initial.active.group <- -1
+  if (actSet == TRUE){
+    if (K0 == 0){
+      initial.active.group <- which(K == min(K))[1] - 1
+    }
+  } else {
+    actIter <- Mstop
+  }
+  
+  fit <- cox_MDTL_enet_cpp(delta, Z, n.each_stratum, beta, K0, K1, lambda.seq, lambda.early.stop,
+                           stop.loss.ratio, group.multiplier, max.total.iter,Mstop, tol, 
+                           initial.active.group, nvar.max, group.max,trace.lambda, actSet, 
+                           actIter, actGroupNum, actSetRemove, alpha, eta, Q_prime, Qbeta_ext_prime)
+  
+  
+  # fit <- cox_MDTL_enet_cpp(delta, Z, n.each_stratum, beta, K0, K1, lambda.seq, lambda.early.stop,
+  #                          stop.loss.ratio, group.multiplier, max.total.iter, Mstop, tol,
+  #                          initial.active.group, nvar.max, group.max, trace.lambda, actSet,
+  #                          actIter, actGroupNum, actSetRemove, alpha, eta, Q, Qbeta_ext)
+  
+  
+  beta <- fit$beta
+  LinPred <- fit$LinPred
+  df <- fit$Df
+  iter <- fit$iter
+  loss <- fit$loss
+  
+  # Eliminate saturated lambda values
+  ind <- !is.na(iter)
+  lambda <- lambda.seq[ind]
+  beta <- beta[, ind, drop = FALSE]
+  loss <- loss[ind]
+  LinPred <- LinPred[, ind, drop = FALSE]
+  df <- df[ind]
+  iter <- iter[ind]
+  
+  if (iter[1] == max.total.iter){
+    stop("Algorithm failed to converge for any values of lambda", call. = FALSE)
+  }
+  if (sum(iter) == max.total.iter){
+    warning("Algorithm failed to converge for all values of lambda", call. = FALSE)
+  }
+  
+  
+  # Original scale
+  beta <- unorthogonalize(beta, std.Z$std.Z, group)
+  rownames(beta) <- colnames(Z)
+  if (std.Z$reorder == TRUE){  # original order of beta
+    beta <- beta[std.Z$ord.inv, , drop = F]
+  }
+  if (standardize == T) {
+    original.beta <- matrix(0, nrow = length(std.Z$scale), ncol = ncol(beta))
+    original.beta[std.Z$nz, ] <- beta / std.Z$scale[std.Z$nz]
+    beta <- original.beta
+  }
+  
+  
+  # Names
+  rownames(beta) <- colnames(input_data$z)   
+  colnames(beta) <- round(lambda, 4)
+  colnames(LinPred) <- round(lambda, 4)
+  
+  #recover the original order of linear predictors
+  if (data_sorted == FALSE){
+    LinPred_original <- matrix(NA_real_, nrow = length(time_order), ncol = ncol(LinPred))
+    LinPred_original[time_order, ] <- LinPred
+  } else {
+    LinPred_original <- LinPred
+  }
+  
+  result <- structure(list(
+    beta = beta,
+    group = factor(initial.group),
+    lambda = lambda,
+    alpha = alpha,
+    likelihood = loss,
+    n = n,
+    df = df,
+    iter = iter,
+    W = exp(LinPred_original),
+    group.multiplier = group.multiplier,
+    data = input_data
+  ), class = "cox_MDTL_enet")
+  
+  if (returnX == TRUE){
+    result$returnX <- list(XX = std.Z,
+                           time = time,
+                           delta = delta,
+                           stratum = stratum,
+                           RS = RS)
+  }
+  return(result)
+}
