@@ -1,0 +1,119 @@
+Transfer Learning for Time-to-Event Modelling via Bregman Divergence.
+The package supports both low-dimensional and high-dimensional settings
+to leverage external summary statistics or auxiliary data.
+
+# Package index
+
+## Low-Dimensional Conditional Logistic Model
+
+- [`clogit()`](https://um-kevinhe.github.io/SurvBregDiv/reference/clogit.md)
+  : Conditional Logistic Regression (CLR) using Cox PH Core
+
+## Low-Dimensional KL Divergence based Integrated Conditional Logistic Model
+
+- [`clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/clogitkl.md)
+  : Conditional Logistic Regression with KL Divergence (CLR-KL)
+- [`cv.clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl.md)
+  : Cross-Validated Conditional Logistic Regression with KL Integration
+
+## Low-Dimensional Cox Model
+
+- [`cox()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox.md) :
+  Estimate Cox Proportional Hazards Model Coefficients
+
+## Low-Dimensional Bregman Divergence based Integrated Cox Model
+
+- [`coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl.md)
+  : Cox Proportional Hazards Model with KL Divergence for Data
+  Integration
+- [`cv.coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl.md)
+  : Cross-Validated Cox–KL to Tune the Integration Parameter (eta)
+- [`coxkl_ties()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ties.md)
+  : Cox Proportional Hazards Model with KL Divergence for Data
+  Integration (Ties Handling)
+- [`cv.coxkl_ties()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ties.md)
+  : Cross-Validated Cox–KL with Ties Handling to Tune the Integration
+  Parameter (eta)
+- [`cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL.md)
+  : Cox Proportional Hazards Model with Mahalanobis Distance Transfer
+  Learning
+- [`cv.cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL.md)
+  : Cross-Validation for Cox MDTL Model
+
+## High-Dimensional Bregman Divergence based Integrated Cox Model
+
+- [`coxkl_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ridge.md)
+  : Cox Proportional Hazards Model with Ridge Penalty and External
+  Information
+- [`coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.md)
+  : Cox Proportional Hazards Model with KL Divergence and Elastic Net
+  Penalty
+- [`cv.coxkl_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ridge.md)
+  : Cross-Validation for CoxKL Ridge Model (Tuning Eta and Lambda)
+- [`cv.coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_enet.md)
+  : Cross-Validation for CoxKL Model with Elastic Net & Lasso Penalty
+- [`cox_MDTL_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_ridge.md)
+  : Cox MDTL with Ridge Regularization
+- [`cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.md)
+  : Fit Cox Model with Multi-Domain Transfer Learning and Elastic Net
+  Penalty
+- [`cv.cox_MDTL_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_ridge.md)
+  : Cross-Validation for Cox MDTL with Ridge Regularization
+- [`cv.cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_enet.md)
+  : Cross-Validation for Cox MDTL with Elastic Net Regularization
+
+## Stability Selection for High-Dimensional Models
+
+- [`coxkl_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.StabSelect.md)
+  : Stability Selection for Cox-KL Enet Model
+- [`cox_MDTL_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.StabSelect.md)
+  : Stability Selection for Cox MDTL Enet Model
+
+## Bagging for High-Dimensional Models
+
+- [`coxkl_enet_bagging()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet_bagging.md)
+  : Bagging for cv.coxkl_enet
+- [`cox_MDTL_enet_bagging()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet_bagging.md)
+  : Bagging for cv.cox_MDTL_enet
+
+## Plotting Functions
+
+- [`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md)
+  : Plot Cross-Validation Results vs Eta (Biometrics-style)
+- [`plot(`*`<coxkl>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.coxkl.md)
+  : Plot Validation Results for coxkl Object
+- [`plot(`*`<coxkl_ridge>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.coxkl_ridge.md)
+  : Plot Validation Results for coxkl_ridge Object
+- [`plot(`*`<coxkl_enet>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.coxkl_enet.md)
+  : Plot Validation Results for coxkl_enet Object
+- [`plot(`*`<cox_MDTL>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.cox_MDTL.md)
+  : Plot Validation Results for Cox_MDTL Object
+- [`plot(`*`<cox_MDTL_enet>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.cox_MDTL_enet.md)
+  : Plot Validation Results for cox_MDTL_enet Object
+- [`plot(`*`<cox_MDTL_ridge>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.cox_MDTL_ridge.md)
+  : Plot Validation Results for cox_MDTL_ridge Object
+- [`plot(`*`<StabSelect>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.StabSelect.md)
+  : Plot Stability Selection Path
+
+## Utilities
+
+- [`generate_eta()`](https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.md)
+  : Generate a Sequence of Tuning Parameters (eta)
+
+## Datasets
+
+- [`ExampleData_lowdim`](https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_lowdim.md)
+  : Example low-dimensional survival data
+- [`ExampleData_highdim`](https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_highdim.md)
+  : Example high-dimensional survival data
+- [`ExampleData_cc`](https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_cc.md)
+  : Example Data for Conditional Logistic Regression
+
+# Articles
+
+### All vignettes
+
+- [Methods](https://um-kevinhe.github.io/SurvBregDiv/articles/Methods.md):
+- [SurvBregDiv: Transfer Learning for Time-to-Event Modelling via
+  Bregman
+  Divergence](https://um-kevinhe.github.io/SurvBregDiv/articles/SurvBregDiv.md):

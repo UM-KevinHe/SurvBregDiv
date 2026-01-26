@@ -1,0 +1,93 @@
+# SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence
+
+## Introduction
+
+Accurate prognostic modeling is a central goal in survival analysis. The
+rapid expansion of large-scale biobank initiatives—with rich genetic,
+molecular, imaging, and electronic health record data—has created new
+opportunities to improve predictive performance in clinical and
+epidemiologic research. However, these datasets often exhibit limited
+effective sample sizes, high dimensionality, low signal-to-noise ratios,
+and additional practical constraints including privacy considerations
+and restricted data access.
+
+Integrating external information offers a principled strategy for
+improving model efficiency. Yet, classical data-integration methods
+typically rely on the assumption that multiple datasets arise from a
+common data-generating mechanism. In modern biomedical applications,
+this assumption is rarely satisfied. Misspecification due to population
+heterogeneity can induce substantial bias, motivating the development of
+transfer-learning approaches that explicitly accommodate between-source
+discrepancies.
+
+While Bregman divergence has been successfully applied to borrowing
+information in binary-outcome settings, extending such ideas to censored
+time-to-event outcomes is nontrivial due to right censoring and the
+limited nature of available external survival information (e.g.,
+predicted risk scores, fitted regression coefficients, or hazard ratios
+without access to a baseline hazard).
+
+Beyond full-cohort survival studies, many biomedical investigations rely
+on the nested case–control (NCC) design to alleviate the burden of
+labor-intensive measurements, high-cost data acquisition, and
+destructive or finite biospecimen assays. Under an NCC design, only a
+small number of matched controls are sampled at each failure time,
+producing survival data that are analyzed through conditional logistic
+regression applied to matched risk sets. Despite its practical
+relevance, no existing methodology or software supports transfer
+learning or external information borrowing under NCC designs.
+
+The `SurvBregDiv` package addresses these challenges by providing a
+unified transfer-learning framework for both full-cohort Cox data and
+nested case–control designs. The methods integrate external information
+in a privacy-preserving manner and are applicable to both
+low-dimensional settings and high-dimensional variable selection with
+ridge, lasso, and elastic net penalties.
+
+### Key Features
+
+- **Transfer learning via KL/Bregman shrinkage**  
+  Integrates external information through Bregman divergence–based
+  penalization, enabling adaptive borrowing from heterogeneous data
+  sources.
+
+- **Privacy-preserving external information use**  
+  Operates on summary-level external inputs—such as fitted coefficients
+  or risk scores—without requiring individual-level external data
+  access.
+
+- **Heterogeneity-aware borrowing**  
+  Accommodates population differences through
+  tuning-parameter–controlled shrinkage, selectively borrowing strength
+  only when sources are compatible.
+
+- **High-dimensional modeling with regularization**  
+  Supports penalized KL-integrated models, including ridge, lasso, and
+  elastic net penalties for variable selection and shrinkage.
+
+- **Flexible external information formats**  
+  Allows external inputs in the form of coefficients, risk scores, or
+  partially overlapping covariate sets.
+
+- **Built-in cross-validation for tuning**  
+  Provides cross-validation criteria tailored for survival outcomes,
+  including C-index, predicted deviance, and V&VH loss.
+
+This vignette introduces the core functionalities of `SurvBregDiv` and
+illustrates workflows for both low- and high-dimensional applications.
+
+## Installation
+
+You can install from CRAN:
+
+``` r
+install.packages("SurvBregDiv")
+```
+
+Or install the development version of `SurvBregDiv` from GitHub:
+
+``` r
+require(devtools)
+require(remotes)
+remotes::install_github("UM-KevinHe/SurvBregDiv", ref = "main")
+```
