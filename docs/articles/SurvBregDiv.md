@@ -91,3 +91,240 @@ require(devtools)
 require(remotes)
 remotes::install_github("UM-KevinHe/SurvBregDiv", ref = "main")
 ```
+
+## Quick Start
+
+This section provides a brief overview of the main functions using
+example datasets included in the package.
+
+First, load the package:
+
+``` r
+library(SurvBregDiv)
+```
+
+### Full-Cohort Cox Model with Bregman Divergence Integration
+
+#### Low-Dimensional Integration
+
+The low-dimensional Bregman-divergence–integrated Cox model is intended
+for settings where the number of predictors is modest. External
+information—either in the form of external Cox coefficients (`beta`) or
+pre-computed external risk scores (`RS`)—is incorporated through a
+Bregman-divergence penalization mechanism.
+
+The tuning parameter `eta` controls the strength of information
+borrowing:
+
+- `eta = 0` reduces to the standard Cox model (no external borrowing),
+  and  
+- larger values of `eta` increasingly shrink the fitted coefficients
+  toward the external information.
+
+Two specific divergence choices are supported:
+
+- **Kullback–Leibler (KL) divergence**, implemented via
+  [`coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl.md),
+  and  
+- **squared Mahalanobis distance**, implemented via
+  [`cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL.md).
+
+For both formulations, the optimal `eta` can be selected through
+cross-validation using
+[`cv.coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl.md)
+or
+[`cv.cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL.md),
+respectively.
+
+We illustrate the workflow using the built-in low-dimensional simulated
+dataset `ExampleData_lowdim`, which consists of a training set (100
+samples) and a test set (2000 samples) with 6 predictors. We first
+extract the training components:
+
+``` r
+data(ExampleData_lowdim)
+
+train  <- ExampleData_lowdim$train
+test   <- ExampleData_lowdim$test
+
+z      <- train$z
+delta  <- train$status
+time   <- train$time
+strat  <- train$stratum
+```
+
+and externally derived coefficients beta_external:
+
+``` r
+beta_ext <- ExampleData_lowdim$beta_external_fair
+```
+
+We generate a sequence of tuning parameter `eta` values via the internal
+utility
+[`generate_eta()`](https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.md)
+and fit the integrated model across this grid:
+
+``` r
+eta_list <- generate_eta(method = "exponential", n = 50, max_eta = 10)
+```
+
+##### Model Fitting:
+
+For the KL divergence–based integrated model, we use the function
+[`coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl.md):
+
+``` r
+coxkl_est <- coxkl(
+  z = z,
+  delta = delta,
+  time = time,
+  stratum = strat,
+  beta = beta_ext,
+  etas = eta_list
+)
+```
+
+For the squared Mahalanobis distance–based integrated model, we use
+[`cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL.md):
+
+``` r
+cox_MDTL_est <- cox_MDTL(
+  z = z,
+  delta = delta,
+  time = time,
+  stratum = strat,
+  beta = beta_ext,
+  vcov = NULL,
+  etas = eta_list
+)
+```
+
+Note that the squared Mahalanobis distance formulation requires a
+user-specified weighting matrix via the argument `vcov`. In standard
+Mahalanobis distance settings, is taken to be the inverse covariance
+matrix of the coefficients. If `vcov = NULL`, the function defaults to
+the identity matrix.
+
+Users may instead supply an external risk score vector:
+
+``` r
+RS_ext <- as.matrix(z) %*% as.matrix(beta_ext)
+
+coxkl_est.RS <- coxkl(
+  z = z,
+  delta = delta,
+  time = time,
+  stratum = strat,
+  RS = RS_ext,
+  etas = eta_list
+)
+```
+
+For datasets containing tied event times, users may apply the
+[`coxkl_ties()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ties.md)
+function, which extends integrated Cox model to handle ties. The
+following example illustrates the use of the Breslow method for tie
+handling:
+
+``` r
+time_ties <- round(time, 2)   # Rounding time introduces ties for demonstration
+
+coxkl_ties_est <- coxkl_ties(
+  z = z,
+  delta = delta,
+  time = time_ties,
+  stratum = strat,
+  beta = beta_ext,
+  etas = eta_list,
+  ties = "breslow"
+)
+```
+
+##### Hyperparameter Tuning via Cross-Validation:
+
+The function `cv.coxkl` and `cv.cox_MDTL` performs K-fold (default 5)
+cross-validation to choose the integration parameter. It supports four
+criteria:
+
+- `"V&VH"` — V&VH loss  
+- `"LinPred"` — predicted partial deviance  
+- `"CIndex_pooled"` — pooled comparable pairs  
+- `"CIndex_foldaverage"` — per-fold stratified C-index
+
+Below is an example using the default `"V&VH"` criterion:
+
+``` r
+cv.coxkl_est <- cv.coxkl(
+  z = z,
+  delta = delta,
+  time = time,
+  stratum = strat,
+  beta = beta_ext,
+  etas = eta_list,
+  nfolds = 5,
+  criteria = "V&VH",
+  seed = 1)
+```
+
+##### Model Visualization:
+
+Objects of model fittings (i.e. from either `coxkl` or `cox_MDTL`) from
+can be visualized using the S3 plotting method
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html).  
+This function displays how model performance changes across the
+`eta`–sequence used during fitting.
+
+Two types of performance criteria are supported:
+
+- `"loss"`  
+  (default; −2 × partial log-likelihood, normalized by sample size)
+
+- `"CIndex"`  
+  (stratified concordance index)
+
+Users may directly call the
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) method to
+visualize the model’s fitted performance on the training data without
+providing additional test data. If a test set is supplied, performance
+metrics are computed using the test set instead:
+
+``` r
+plot(
+  cox_MDTL_est,
+  test_z       = test$z,
+  test_time    = test$time,
+  test_delta   = test$status,
+  test_stratum = test$stratum,
+  criteria     = "loss"
+) 
+```
+
+![Plot generated in survkl
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-13-1.png)
+
+The cross-validated performance curve from hyperparameter tuning
+functions `cv.coxkl` or `cv.cox_MDTL` can be visualized directly using
+[`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md):
+
+``` r
+cv.plot(cv.coxkl_est)
+```
+
+![Plot generated in survkl
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-14-1.png)
+
+- The solid purple curve displays the cross-validated loss across
+  different values of `eta`.
+- The green dotted horizontal line marks the internal baseline at `eta`
+  = 0, representing the model that does not incorporate external
+  information.
+- The vertical dashed orange line indicates the optimal `eta` value,
+  where the cross-validated loss is minimized.
+
+A comparison between the purple curve and the green baseline shows
+whether borrowing external information improves prediction performance.
+Whenever the purple curve falls below the green line, using external
+information (`eta` \> 0) yields better predictive accuracy than relying
+solely on the internal model.
+
+### Nested Case-Control Design with Bregman Divergence Integration

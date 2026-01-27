@@ -69,8 +69,8 @@ An object of class "bagging".
 Bagging for cv.coxkl_enet
 }
 \examples{
-\donttest{
-data(ExampleData_highdim) 
+\dontrun{
+data(ExampleData_highdim)
 train_dat_highdim <- ExampleData_highdim$train
 beta_external_highdim <- ExampleData_highdim$beta_external
 etas <- generate_eta(method = "exponential", n = 10, max_eta = 100)
@@ -80,9 +80,9 @@ bagging.beta_fixed <- coxkl_enet_bagging(
   delta = train_dat_highdim$status,
   time = train_dat_highdim$time,
   stratum = train_dat_highdim$stratum,
-  beta = beta_external_highdim,         
+  beta = beta_external_highdim,
   etas = etas,
-  B = 5,                        
+  B = 5,
   seed = 1
 )
 }

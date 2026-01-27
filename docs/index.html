@@ -49,8 +49,56 @@
   </div>
 </nav><div class="container template-home">
 <div class="row">
-  <main id="main" class="col-md-9">
-Transfer Learning for Time-to-Event Modelling via Bregman Divergence. The package supports both low-dimensional and high-dimensional settings to leverage external summary statistics or auxiliary data.
+  <main id="main" class="col-md-9"><div class="section level1">
+<div class="page-header"><h1 id="survbregdiv-transfer-learning-for-time-to-event-modelling-via-bregman-divergence">SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence<a class="anchor" aria-label="anchor" href="#survbregdiv-transfer-learning-for-time-to-event-modelling-via-bregman-divergence"></a>
+</h1></div>
+<p><strong>SurvBregDiv</strong> provides flexible and efficient tools for integrating external risk scores into time-to-event models (including Cox proportional hazards models and nested case–control models), while properly accounting for population heterogeneity. The package enables robust estimation, improved predictive performance, and user-friendly workflows for modern survival analysis.</p>
+<div class="section level2">
+<h2 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
+</h2>
+<ul>
+<li><p><strong>Integration of External Risk Scores</strong><br>
+Seamlessly incorporate predictions from <em>any</em> external risk model into your analysis pipeline.</p></li>
+<li><p><strong>Population Heterogeneity Adjustment</strong><br>
+Adjusts for distributional differences between the external model’s source population and the target study population.</p></li>
+<li><p><strong>Multiple Data Structures and Modelling Settings</strong><br>
+Supports both Cox proportional hazards models and nested case–control designs, with functionality for low-dimensional inference and high-dimensional feature selection.</p></li>
+<li><p><strong>Improved Estimation and Prediction</strong><br>
+Empirically demonstrates efficiency gains in parameter estimation and enhanced predictive accuracy.</p></li>
+<li><p><strong>Built-In Cross-Validation</strong><br>
+Automated procedures for tuning and penalization parameter selection.</p></li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<blockquote>
+<p><strong>Note:</strong> This package is currently under active development. Please report any issues or unexpected behavior.<br>
+Requires <strong>R ≥ 4.0.0</strong>.</p>
+</blockquote>
+<p>Install from CRAN:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"SurvBregDiv"</span>)</span></code></pre></div>
+<p>Or install the development version from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">require</span>(<span class="st">"devtools"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">require</span>(<span class="st">"remotes"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">"UM-KevinHe/SurvBregDiv"</span>)</span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="detailed-tutorial">Detailed Tutorial<a class="anchor" aria-label="anchor" href="#detailed-tutorial"></a>
+</h2>
+<p>Full package documentation and parameter explanations: <a href="https://um-kevinhe.github.io/SurvBregDiv/">here</a></p>
+</div>
+<div class="section level2">
+<h2 id="getting-help">Getting Help<a class="anchor" aria-label="anchor" href="#getting-help"></a>
+</h2>
+<p>If you encounter problems or bugs, please contact us:</p>
+<ul>
+<li><a href="mailto:ybshao@umich.edu" class="email">ybshao@umich.edu</a></li>
+<li><a href="mailto:junyiqiu@umich.edu" class="email">junyiqiu@umich.edu</a></li>
+<li><a href="mailto:kevinhe@umich.edu" class="email">kevinhe@umich.edu</a></li>
+</ul>
+</div>
+</div>
   </main><aside class="col-md-3"><div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">

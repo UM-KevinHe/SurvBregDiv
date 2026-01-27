@@ -79,7 +79,7 @@ It generates \code{B} bootstrap samples from the internal data, fits the Cross-V
 Cox MDTL Elastic Net model on each sample, and aggregates the resulting coefficients.
 }
 \examples{
-\donttest{
+\dontrun{
 data(ExampleData_highdim)
 train_dat_highdim <- ExampleData_highdim$train
 beta_external_highdim <- ExampleData_highdim$beta_external

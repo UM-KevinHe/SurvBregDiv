@@ -148,6 +148,223 @@ GitHub:</p>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">require</a></span><span class="op">(</span><span class="va"><a href="https://remotes.r-lib.org" class="external-link">remotes</a></span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"UM-KevinHe/SurvBregDiv"</span>, ref <span class="op">=</span> <span class="st">"main"</span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level2">
+<h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
+</h2>
+<p>This section provides a brief overview of the main functions using
+example datasets included in the package.</p>
+<p>First, load the package:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://um-kevinhe.github.io/SurvBregDiv/">SurvBregDiv</a></span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="full-cohort-cox-model-with-bregman-divergence-integration">Full-Cohort Cox Model with Bregman Divergence Integration<a class="anchor" aria-label="anchor" href="#full-cohort-cox-model-with-bregman-divergence-integration"></a>
+</h3>
+<div class="section level4">
+<h4 id="low-dimensional-integration">Low-Dimensional Integration<a class="anchor" aria-label="anchor" href="#low-dimensional-integration"></a>
+</h4>
+<p>The low-dimensional Bregman-divergence–integrated Cox model is
+intended for settings where the number of predictors is modest. External
+information—either in the form of external Cox coefficients
+(<code>beta</code>) or pre-computed external risk scores
+(<code>RS</code>)—is incorporated through a Bregman-divergence
+penalization mechanism.</p>
+<p>The tuning parameter <code>eta</code> controls the strength of
+information borrowing:</p>
+<ul>
+<li>
+<code>eta = 0</code> reduces to the standard Cox model (no external
+borrowing), and<br>
+</li>
+<li>larger values of <code>eta</code> increasingly shrink the fitted
+coefficients toward the external information.</li>
+</ul>
+<p>Two specific divergence choices are supported:</p>
+<ul>
+<li>
+<strong>Kullback–Leibler (KL) divergence</strong>, implemented via
+<code><a href="../reference/coxkl.html">coxkl()</a></code>, and<br>
+</li>
+<li>
+<strong>squared Mahalanobis distance</strong>, implemented via
+<code><a href="../reference/cox_MDTL.html">cox_MDTL()</a></code>.</li>
+</ul>
+<p>For both formulations, the optimal <code>eta</code> can be selected
+through cross-validation using <code><a href="../reference/cv.coxkl.html">cv.coxkl()</a></code> or
+<code><a href="../reference/cv.cox_MDTL.html">cv.cox_MDTL()</a></code>, respectively.</p>
+<p>We illustrate the workflow using the built-in low-dimensional
+simulated dataset <code>ExampleData_lowdim</code>, which consists of a
+training set (100 samples) and a test set (2000 samples) with 6
+predictors. We first extract the training components:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">ExampleData_lowdim</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">train</span>  <span class="op">&lt;-</span> <span class="va">ExampleData_lowdim</span><span class="op">$</span><span class="va">train</span></span>
+<span><span class="va">test</span>   <span class="op">&lt;-</span> <span class="va">ExampleData_lowdim</span><span class="op">$</span><span class="va">test</span></span>
+<span></span>
+<span><span class="va">z</span>      <span class="op">&lt;-</span> <span class="va">train</span><span class="op">$</span><span class="va">z</span></span>
+<span><span class="va">delta</span>  <span class="op">&lt;-</span> <span class="va">train</span><span class="op">$</span><span class="va">status</span></span>
+<span><span class="va">time</span>   <span class="op">&lt;-</span> <span class="va">train</span><span class="op">$</span><span class="va">time</span></span>
+<span><span class="va">strat</span>  <span class="op">&lt;-</span> <span class="va">train</span><span class="op">$</span><span class="va">stratum</span></span></code></pre></div>
+<p>and externally derived coefficients beta_external:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">beta_ext</span> <span class="op">&lt;-</span> <span class="va">ExampleData_lowdim</span><span class="op">$</span><span class="va">beta_external_fair</span></span></code></pre></div>
+<p>We generate a sequence of tuning parameter <code>eta</code> values
+via the internal utility <code><a href="../reference/generate_eta.html">generate_eta()</a></code> and fit the
+integrated model across this grid:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">eta_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generate_eta.html">generate_eta</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"exponential"</span>, n <span class="op">=</span> <span class="fl">50</span>, max_eta <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+<div class="section level5">
+<h5 id="model-fitting">Model Fitting:<a class="anchor" aria-label="anchor" href="#model-fitting"></a>
+</h5>
+<p>For the KL divergence–based integrated model, we use the function
+<code><a href="../reference/coxkl.html">coxkl()</a></code>:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">coxkl_est</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/coxkl.html">coxkl</a></span><span class="op">(</span></span>
+<span>  z <span class="op">=</span> <span class="va">z</span>,</span>
+<span>  delta <span class="op">=</span> <span class="va">delta</span>,</span>
+<span>  time <span class="op">=</span> <span class="va">time</span>,</span>
+<span>  stratum <span class="op">=</span> <span class="va">strat</span>,</span>
+<span>  beta <span class="op">=</span> <span class="va">beta_ext</span>,</span>
+<span>  etas <span class="op">=</span> <span class="va">eta_list</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>For the squared Mahalanobis distance–based integrated model, we use
+<code><a href="../reference/cox_MDTL.html">cox_MDTL()</a></code>:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cox_MDTL_est</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cox_MDTL.html">cox_MDTL</a></span><span class="op">(</span></span>
+<span>  z <span class="op">=</span> <span class="va">z</span>,</span>
+<span>  delta <span class="op">=</span> <span class="va">delta</span>,</span>
+<span>  time <span class="op">=</span> <span class="va">time</span>,</span>
+<span>  stratum <span class="op">=</span> <span class="va">strat</span>,</span>
+<span>  beta <span class="op">=</span> <span class="va">beta_ext</span>,</span>
+<span>  vcov <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  etas <span class="op">=</span> <span class="va">eta_list</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Note that the squared Mahalanobis distance formulation requires a
+user-specified weighting matrix via the argument <code>vcov</code>. In
+standard Mahalanobis distance settings, is taken to be the inverse
+covariance matrix of the coefficients. If <code>vcov = NULL</code>, the
+function defaults to the identity matrix.</p>
+<p>Users may instead supply an external risk score vector:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">RS_ext</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">z</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">beta_ext</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">coxkl_est.RS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/coxkl.html">coxkl</a></span><span class="op">(</span></span>
+<span>  z <span class="op">=</span> <span class="va">z</span>,</span>
+<span>  delta <span class="op">=</span> <span class="va">delta</span>,</span>
+<span>  time <span class="op">=</span> <span class="va">time</span>,</span>
+<span>  stratum <span class="op">=</span> <span class="va">strat</span>,</span>
+<span>  RS <span class="op">=</span> <span class="va">RS_ext</span>,</span>
+<span>  etas <span class="op">=</span> <span class="va">eta_list</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>For datasets containing tied event times, users may apply the
+<code><a href="../reference/coxkl_ties.html">coxkl_ties()</a></code> function, which extends integrated Cox model
+to handle ties. The following example illustrates the use of the Breslow
+method for tie handling:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">time_ties</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">time</span>, <span class="fl">2</span><span class="op">)</span>   <span class="co"># Rounding time introduces ties for demonstration</span></span>
+<span></span>
+<span><span class="va">coxkl_ties_est</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/coxkl_ties.html">coxkl_ties</a></span><span class="op">(</span></span>
+<span>  z <span class="op">=</span> <span class="va">z</span>,</span>
+<span>  delta <span class="op">=</span> <span class="va">delta</span>,</span>
+<span>  time <span class="op">=</span> <span class="va">time_ties</span>,</span>
+<span>  stratum <span class="op">=</span> <span class="va">strat</span>,</span>
+<span>  beta <span class="op">=</span> <span class="va">beta_ext</span>,</span>
+<span>  etas <span class="op">=</span> <span class="va">eta_list</span>,</span>
+<span>  ties <span class="op">=</span> <span class="st">"breslow"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level5">
+<h5 id="hyperparameter-tuning-via-cross-validation">Hyperparameter Tuning via Cross-Validation:<a class="anchor" aria-label="anchor" href="#hyperparameter-tuning-via-cross-validation"></a>
+</h5>
+<p>The function <code>cv.coxkl</code> and <code>cv.cox_MDTL</code>
+performs K-fold (default 5) cross-validation to choose the integration
+parameter. It supports four criteria:</p>
+<ul>
+<li>
+<code>"V&amp;VH"</code> — V&amp;VH loss<br>
+</li>
+<li>
+<code>"LinPred"</code> — predicted partial deviance<br>
+</li>
+<li>
+<code>"CIndex_pooled"</code> — pooled comparable pairs<br>
+</li>
+<li>
+<code>"CIndex_foldaverage"</code> — per-fold stratified C-index</li>
+</ul>
+<p>Below is an example using the default <code>"V&amp;VH"</code>
+criterion:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cv.coxkl_est</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.coxkl.html">cv.coxkl</a></span><span class="op">(</span></span>
+<span>  z <span class="op">=</span> <span class="va">z</span>,</span>
+<span>  delta <span class="op">=</span> <span class="va">delta</span>,</span>
+<span>  time <span class="op">=</span> <span class="va">time</span>,</span>
+<span>  stratum <span class="op">=</span> <span class="va">strat</span>,</span>
+<span>  beta <span class="op">=</span> <span class="va">beta_ext</span>,</span>
+<span>  etas <span class="op">=</span> <span class="va">eta_list</span>,</span>
+<span>  nfolds <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  criteria <span class="op">=</span> <span class="st">"V&amp;VH"</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level5">
+<h5 id="model-visualization">Model Visualization:<a class="anchor" aria-label="anchor" href="#model-visualization"></a>
+</h5>
+<p>Objects of model fittings (i.e. from either <code>coxkl</code> or
+<code>cox_MDTL</code>) from can be visualized using the S3 plotting
+method <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>.<br>
+This function displays how model performance changes across the
+<code>eta</code>–sequence used during fitting.</p>
+<p>Two types of performance criteria are supported:</p>
+<ul>
+<li><p><code>"loss"</code><br>
+(default; −2 × partial log-likelihood, normalized by sample
+size)</p></li>
+<li><p><code>"CIndex"</code><br>
+(stratified concordance index)</p></li>
+</ul>
+<p>Users may directly call the <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method to visualize
+the model’s fitted performance on the training data without providing
+additional test data. If a test set is supplied, performance metrics are
+computed using the test set instead:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
+<span>  <span class="va">cox_MDTL_est</span>,</span>
+<span>  test_z       <span class="op">=</span> <span class="va">test</span><span class="op">$</span><span class="va">z</span>,</span>
+<span>  test_time    <span class="op">=</span> <span class="va">test</span><span class="op">$</span><span class="va">time</span>,</span>
+<span>  test_delta   <span class="op">=</span> <span class="va">test</span><span class="op">$</span><span class="va">status</span>,</span>
+<span>  test_stratum <span class="op">=</span> <span class="va">test</span><span class="op">$</span><span class="va">stratum</span>,</span>
+<span>  criteria     <span class="op">=</span> <span class="st">"loss"</span></span>
+<span><span class="op">)</span> </span></code></pre></div>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p>The cross-validated performance curve from hyperparameter tuning
+functions <code>cv.coxkl</code> or <code>cv.cox_MDTL</code> can be
+visualized directly using <code><a href="../reference/cv.plot.html">cv.plot()</a></code>:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cv.plot.html">cv.plot</a></span><span class="op">(</span><span class="va">cv.coxkl_est</span><span class="op">)</span></span></code></pre></div>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-14-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<ul>
+<li>The solid purple curve displays the cross-validated loss across
+different values of <code>eta</code>.</li>
+<li>The green dotted horizontal line marks the internal baseline at
+<code>eta</code> = 0, representing the model that does not incorporate
+external information.</li>
+<li>The vertical dashed orange line indicates the optimal
+<code>eta</code> value, where the cross-validated loss is
+minimized.</li>
+</ul>
+<p>A comparison between the purple curve and the green baseline shows
+whether borrowing external information improves prediction performance.
+Whenever the purple curve falls below the green line, using external
+information (<code>eta</code> &gt; 0) yields better predictive accuracy
+than relying solely on the internal model.</p>
+</div>
+</div>
+</div>
+<div class="section level3">
+<h3 id="nested-case-control-design-with-bregman-divergence-integration">Nested Case-Control Design with Bregman Divergence Integration<a class="anchor" aria-label="anchor" href="#nested-case-control-design-with-bregman-divergence-integration"></a>
+</h3>
+</div>
+</div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
 </div>

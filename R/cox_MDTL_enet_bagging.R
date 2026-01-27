@@ -35,11 +35,11 @@
 #' }
 #'
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' data(ExampleData_highdim)
 #' train_dat_highdim <- ExampleData_highdim$train
 #' beta_external_highdim <- ExampleData_highdim$beta_external
-#' 
+#'
 #' etas <- generate_eta(method = "exponential", n = 10, max_eta = 10)
 #' bagging_res <- cox_MDTL_enet_bagging(
 #'   z = train_dat_highdim$z,
@@ -64,13 +64,13 @@ cox_MDTL_enet_bagging <- function(z, delta, time, stratum = NULL, beta = NULL, v
                                   cv.criteria = c("V&VH", "LinPred", "CIndex_pooled", "CIndex_foldaverage"),
                                   c_index_stratum = NULL,
                                   message = FALSE, seed = NULL, ...) {
-  
+
   cv.criteria <- match.arg(cv.criteria)
-  
+
   z <- as.matrix(z)
   n <- nrow(z)
   p <- ncol(z)
-  
+
   # Input checks specific to MDTL
   if (is.null(beta)) {
     stop("External beta must be provided for Cox MDTL.")
@@ -78,38 +78,38 @@ cox_MDTL_enet_bagging <- function(z, delta, time, stratum = NULL, beta = NULL, v
   if (length(beta) != p) {
     stop("Length of external beta must match number of columns in z.")
   }
-  
+
   if (is.null(stratum)) {
     stratum_full <- rep(1, n)
   } else {
     stratum_full <- stratum
   }
-  
+
   if (!is.null(seed)) set.seed(seed)
-  
+
   res_list <- vector("list", B)
-  
+
   if (message) {
     cat("Starting Bagging (B =", B, ") for cv.cox_MDTL_enet:\n")
     pb <- txtProgressBar(min = 0, max = B, style = 3)
   }
-  
+
   for (i in seq_len(B)) {
     # 1. Bootstrap sampling of the INTERNAL data
     boot_idx <- sort(sample(seq_len(n), size = n, replace = TRUE))
-    
+
     z_b       <- z[boot_idx, , drop = FALSE]
     delta_b   <- delta[boot_idx]
     time_b    <- time[boot_idx]
     stratum_b <- stratum_full[boot_idx]
-    
+
     # Note: 'beta' and 'vcov' are EXTERNAL information, so they are fixed and NOT resampled.
-    
+
     c_idx_strat_b <- NULL
     if (!is.null(c_index_stratum)) {
       c_idx_strat_b <- c_index_stratum[boot_idx]
     }
-    
+
     # 2. Fit cv.cox_MDTL_enet on bootstrapped data
     fit_res <- tryCatch({
       cv.cox_MDTL_enet(
@@ -134,7 +134,7 @@ cox_MDTL_enet_bagging <- function(z, delta, time, stratum = NULL, beta = NULL, v
       # Handle convergence failures gracefully
       return(NULL)
     })
-    
+
     # 3. Store result
     if (!is.null(fit_res)) {
       # Extract the beta corresponding to the best (eta, lambda) combination
@@ -142,30 +142,30 @@ cox_MDTL_enet_bagging <- function(z, delta, time, stratum = NULL, beta = NULL, v
     } else {
       res_list[[i]] <- rep(NA, p)
     }
-    
+
     if (message) setTxtProgressBar(pb, i)
   }
-  
+
   if (message) close(pb)
-  
+
   # 4. Aggregate results
   res_mat <- do.call(cbind, res_list)
-  
+
   # Check for failed runs (NA columns)
   valid_cols <- !apply(res_mat, 2, function(x) any(is.na(x)))
   n_valid <- sum(valid_cols)
-  
+
   if (n_valid < B) {
     warning(sprintf("Only %d out of %d bootstrap replicates converged.", n_valid, B))
     res_mat <- res_mat[, valid_cols, drop = FALSE]
   }
-  
+
   if (n_valid == 0) {
     stop("All bootstrap replicates failed.")
   }
-  
+
   bagged_beta <- rowMeans(res_mat)
-  
+
   structure(
     list(
       best_beta = bagged_beta,

@@ -127,7 +127,7 @@ An object of class `"cox_MDTL_bagging"` containing:
 ## Examples
 
 ``` r
-# \donttest{
+if (FALSE) { # \dontrun{
 data(ExampleData_highdim)
 train_dat_highdim <- ExampleData_highdim$train
 beta_external_highdim <- ExampleData_highdim$beta_external
@@ -147,7 +147,5 @@ bagging_res <- cox_MDTL_enet_bagging(
   message = TRUE,
   seed = 123
 )
-#> Starting Bagging (B = 5 ) for cv.cox_MDTL_enet:
-#>   |                                                                              |                                                                      |   0%  |                                                                              |==============                                                        |  20%  |                                                                              |============================                                          |  40%  |                                                                              |==========================================                            |  60%  |                                                                              |========================================================              |  80%  |                                                                              |======================================================================| 100%
-# }
+} # }
 ```
