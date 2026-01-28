@@ -82,14 +82,14 @@ data(ExampleData_lowdim)
 train_dat_lowdim <- ExampleData_lowdim$train
 train_dat_lowdim$time <- round(train_dat_lowdim$time, 2)  #make ties
 
-fit <- cox(z = train_dat_lowdim$z, 
-           delta = train_dat_lowdim$status, 
+fit <- cox(z = train_dat_lowdim$z,
+           delta = train_dat_lowdim$status,
            time = train_dat_lowdim$time)
 #> Warning: Stratum information not provided. All data is assumed to originate from a single stratum!
 
 # Breslow method for tied data
-fit_Breslow <- cox(z = train_dat_lowdim$z, 
-                   delta = train_dat_lowdim$status, 
+fit_Breslow <- cox(z = train_dat_lowdim$z,
+                   delta = train_dat_lowdim$status,
                    time = train_dat_lowdim$time,
                    ties = "breslow")
 #> Warning: Stratum information not provided. All data is assumed to originate from a single stratum!

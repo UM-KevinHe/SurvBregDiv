@@ -37,35 +37,36 @@
 #' \dontrun{
 #' data(ExampleData_cc)
 #' train_cc <- ExampleData_cc$train
-#' 
+#'
 #' y <- train_cc$y
 #' z <- train_cc$z
 #' sets <- train_cc$stratum
-#' 
+#'
 #' # 1. Fit Conditional Logistic Regression using the Exact method
 #' fit_exact <- clogit(y = y, z = z, stratum = sets, method = "exact")
-#' 
+#'
 #' # 2. Fit CLR using the Breslow approximation
 #' fit_breslow <- clogit(y = y, z = z, stratum = sets, method = "breslow")
 #' }
+#' @keywords internal
 #' @export
 clogit <- function(y, z, stratum,
                    method = c("breslow","exact","efron"),
                    max_iter = 100, tol = 1e-7, comb_max = 1e7) {
-  
+
   method <- match.arg(tolower(method), c("breslow","exact","efron"))
-  
+
   z <- as.matrix(z)
   y <- as.numeric(y)
-  
+
   if (missing(stratum)) {
     warning("Stratum not provided; all data assumed in one stratum. This may be inappropriate for matched case-control studies.", call. = FALSE)
     stratum <- rep(1, length(y))
   }
-  
+
   delta <- y
   time <- rep(1, length(y))
-  
+
   res <- cox(
     z = z,
     delta = delta,
@@ -76,7 +77,7 @@ clogit <- function(y, z, stratum,
     tol = tol,
     comb_max = comb_max
   )
-  
+
   list(
     beta = res$beta,
     loglik = res$loglik

@@ -14,7 +14,7 @@ cv.clogitkl(
   tol = 1e-04,
   Mstop = 100,
   nfolds = 5,
-  criteria = c("loss", "AUC", "Brier"),
+  criteria = c("loss", "AUC", "CIndex", "Brier"),
   message = FALSE,
   seed = NULL,
   comb_max = 1e+07,
@@ -51,8 +51,7 @@ estimates, but \code{"exact"} is theoretically preferable.}
 \item{Mstop}{Maximum number of Newton iterations used inside
 \code{\link{clogitkl}} / \code{\link{coxkl_ties}}. Default \code{100}.}
 
-\item{nfolds}{Number of cross-validation folds. Default \code{5}. Folds are
-constructed at the stratum level using \code{\link{get_fold_cc}}.}
+\item{nfolds}{Number of cross-validation folds. Default \code{5}.}
 
 \item{criteria}{Character string specifying the CV performance criterion.
 Choices are:
@@ -60,6 +59,9 @@ Choices are:
 \item \code{"loss"}: Average negative conditional log-likelihood
 (lower is better).
 \item \code{"AUC"}: Matched-set AUC based on within-stratum comparisons
+(higher is better).
+\item \code{"CIndex"}: Concordance index in the matched-set setting,
+implemented via the same matched-set AUC calculation as \code{"AUC"}
 (higher is better).
 \item \code{"Brier"}: Conditional Brier score using within-stratum
 softmax probabilities (lower is better).
@@ -79,7 +81,7 @@ evaluation progress bars. Default \code{FALSE}.}
 \item{...}{Additional arguments (currently ignored).}
 }
 \value{
-A \code{list} of class \code{"cv.coxkl"} containing:
+A \code{list} of class \code{"cv.clogitkl"} containing:
 \describe{
 \item{\code{internal_stat}}{A \code{data.frame} with one row per \code{eta}
 and the CV metric results for the chosen \code{criteria}.}
@@ -119,6 +121,10 @@ corresponding training data; the fold-wise losses are then averaged.
 For each stratum, the case score is compared to the control scores,
 counting concordant/discordant/tied pairs and aggregating across all
 strata. Higher AUC indicates better discrimination.
+\item \code{"CIndex"}: Alias for \code{"AUC"}. In the 1:m matched
+case–control setting, the matched-set AUC is equivalent to the
+conditional concordance index, and is computed using the same path as
+\code{"AUC"}.
 \item \code{"Brier"}: A conditional Brier score based on within-stratum
 softmax probabilities. For each stratum, a probability is assigned to
 each member via
@@ -158,10 +164,4 @@ cv_clr_kl <- cv.clogitkl(
 cv_clr_kl$best$best_eta
 }
 
-}
-\seealso{
-\code{\link{clogitkl}} for Conditional Logistic KL fitting,
-\code{\link{coxkl_ties}} for the underlying Cox–KL engine, and
-\code{\link{get_fold_cc}} for stratum-level fold construction in
-matched case–control studies.
 }

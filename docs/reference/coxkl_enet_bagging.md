@@ -1,6 +1,10 @@
-# Bagging for cv.coxkl_enet
+# Bagging for KL-Integrated Cox Elastic-Net Models
 
-Bagging for cv.coxkl_enet
+Performs bootstrap aggregation (bagging) for the KL-integrated Cox
+elastic-net model by repeatedly applying `cv.coxkl_enet` on bootstrap
+resamples of the data. The procedure aggregates fitted coefficient
+vectors across replicates to produce a more stable estimate that is less
+sensitive to sampling variation or a single data split.
 
 ## Usage
 
@@ -31,98 +35,123 @@ coxkl_enet_bagging(
 
 - z:
 
-  Matrix of predictors (n x p).
+  Matrix of predictors of dimension `n x p`.
 
 - delta:
 
-  Vector of event indicators.
+  Event indicator vector.
 
 - time:
 
-  Vector of survival times.
+  Survival time vector.
 
 - stratum:
 
-  Vector indicating the stratum.
+  Optional stratum indicator vector for stratified Cox models.
 
 - RS:
 
-  Vector of external risk scores. Resampled during bagging.
+  Optional matrix or vector of external risk scores. If provided, it is
+  resampled within each bootstrap replicate.
 
 - beta:
 
-  Vector of fixed external coefficients. Not resampled.
+  Optional vector of external coefficients. If provided, it is treated
+  as fixed and not resampled.
 
 - etas:
 
-  Sequence of eta values.
+  Vector of `eta` values for transfer-learning shrinkage.
 
 - alpha:
 
-  Elastic net mixing parameter.
+  Elastic-net mixing parameter (between `0` and `1`).
 
 - B:
 
-  Number of bootstrap replicates.
+  Number of bootstrap replicates. Default is `100`.
 
 - lambda:
 
-  Optional lambda sequence.
+  Optional user-specified `lambda` sequence for the underlying
+  elastic-net fit.
 
 - nlambda:
 
-  Number of lambda values.
+  Number of `lambda` values to generate if `lambda` is not supplied.
 
 - lambda.min.ratio:
 
-  Ratio of min/max lambda.
+  Ratio of smallest to largest `lambda` value when generating a `lambda`
+  sequence.
 
 - nfolds:
 
-  Number of CV folds.
+  Number of folds for cross-validation in `cv.coxkl_enet`.
 
 - cv.criteria:
 
-  Cross-validation criteria.
+  Cross-validation criterion used for selecting `eta`–`lambda` pairs.
 
 - c_index_stratum:
 
-  Stratum for C-index calculation.
+  Optional stratum assignment for stratified C-index evaluation.
 
 - message:
 
-  Logical. Print progress.
+  Logical indicating whether to print progress.
 
 - seed:
 
-  Seed for reproducibility.
+  Optional seed for reproducibility.
 
 - ...:
 
-  Additional arguments for cv.coxkl_enet.
+  Additional arguments passed to `cv.coxkl_enet`.
 
 ## Value
 
-An object of class "bagging".
+An object of class `"bagging"`, which is a list containing:
+
+- `best_beta` — aggregated coefficient estimate obtained via averaging
+  across valid replicates.
+
+- `all_betas` — matrix of dimension `p x B_valid` containing coefficient
+  vectors from each successful bootstrap fit.
+
+- `B` — total number of bootstrap replicates.
+
+- `seed` — seed used (if any).
+
+- `valid_replicates` — number of successful (non-error) bootstrap fits
+  used in aggregation.
+
+## Details
+
+External information may be supplied either as a fixed coefficient
+vector (`beta`) or as pre-computed external risk scores (`RS`). When
+`RS` is provided, it is resampled along with the bootstrap replicates;
+when `beta` is provided, it is treated as fixed across replicates and
+not resampled.
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
 data(ExampleData_highdim)
-train_dat_highdim <- ExampleData_highdim$train
+train_dat_highdim     <- ExampleData_highdim$train
 beta_external_highdim <- ExampleData_highdim$beta_external
 etas <- generate_eta(method = "exponential", n = 10, max_eta = 100)
 
-bagging.beta_fixed <- coxkl_enet_bagging(
-  z = train_dat_highdim$z,
+bag.out <- coxkl_enet_bagging(
+  z     = train_dat_highdim$z,
   delta = train_dat_highdim$status,
-  time = train_dat_highdim$time,
+  time  = train_dat_highdim$time,
   stratum = train_dat_highdim$stratum,
-  beta = beta_external_highdim,
-  etas = etas,
-  B = 5,
-  seed = 1
+  beta    = beta_external_highdim,
+  etas    = etas,
+  B       = 5,
+  seed    = 1
 )
 } # }
 ```

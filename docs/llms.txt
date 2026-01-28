@@ -64,23 +64,6 @@ If you encounter problems or bugs, please contact us:
 
 # Package index
 
-## Low-Dimensional Conditional Logistic Model
-
-- [`clogit()`](https://um-kevinhe.github.io/SurvBregDiv/reference/clogit.md)
-  : Conditional Logistic Regression (CLR) using Cox PH Core
-
-## Low-Dimensional KL Divergence based Integrated Conditional Logistic Model
-
-- [`clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/clogitkl.md)
-  : Conditional Logistic Regression with KL Divergence (CLR-KL)
-- [`cv.clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl.md)
-  : Cross-Validated Conditional Logistic Regression with KL Integration
-
-## Low-Dimensional Cox Model
-
-- [`cox()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox.md) :
-  Estimate Cox Proportional Hazards Model Coefficients
-
 ## Low-Dimensional Bregman Divergence based Integrated Cox Model
 
 - [`coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl.md)
@@ -125,21 +108,36 @@ If you encounter problems or bugs, please contact us:
 ## Stability Selection for High-Dimensional Models
 
 - [`coxkl_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.StabSelect.md)
-  : Stability Selection for Cox-KL Enet Model
+  : Stability Selection for KL-Integrated Cox Elastic-Net Models
 - [`cox_MDTL_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.StabSelect.md)
-  : Stability Selection for Cox MDTL Enet Model
+  : Stability Selection for MDTL-Integrated Cox Elastic-Net Models
 
 ## Bagging for High-Dimensional Models
 
 - [`coxkl_enet_bagging()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet_bagging.md)
-  : Bagging for cv.coxkl_enet
+  : Bagging for KL-Integrated Cox Elastic-Net Models
 - [`cox_MDTL_enet_bagging()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet_bagging.md)
-  : Bagging for cv.cox_MDTL_enet
+  : Bagging for MDTL-Integrated Cox Elastic-Net Models
+
+## Low-Dimensional KL Divergence based Integrated Conditional Logistic Model
+
+- [`clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/clogitkl.md)
+  : Conditional Logistic Regression with KL Divergence (CLR-KL)
+- [`cv.clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl.md)
+  : Cross-Validated Conditional Logistic Regression with KL Integration
+
+## High-Dimensional KL Divergence based Integrated Conditional Logistic Model
+
+- [`clogitkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/clogitkl_enet.md)
+  : Conditional Logistic Regression with KL Divergence and Elastic Net
+  Penalty (CLR-KL-ENet)
+- [`cv.clogitkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl_enet.md)
+  : Cross-Validated CLR-KL with Elastic Net Penalty
 
 ## Plotting Functions
 
 - [`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md)
-  : Plot Cross-Validation Results vs Eta (Biometrics-style)
+  : Plot Cross-Validation Results vs Eta
 - [`plot(`*`<coxkl>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.coxkl.md)
   : Plot Validation Results for coxkl Object
 - [`plot(`*`<coxkl_ridge>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.coxkl_ridge.md)
@@ -168,12 +166,17 @@ If you encounter problems or bugs, please contact us:
   : Example high-dimensional survival data
 - [`ExampleData_cc`](https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_cc.md)
   : Example Data for Conditional Logistic Regression
+- [`ExampleData_cc_highdim`](https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_cc_highdim.md)
+  : Example high-dimensional matched case-control data
 
 # Articles
 
-### All vignettes
+### Get started
 
-- [Methods](https://um-kevinhe.github.io/SurvBregDiv/articles/Methods.md):
 - [SurvBregDiv: Transfer Learning for Time-to-Event Modelling via
   Bregman
   Divergence](https://um-kevinhe.github.io/SurvBregDiv/articles/SurvBregDiv.md):
+
+### Appendix
+
+- [Methods](https://um-kevinhe.github.io/SurvBregDiv/articles/Methods.md):

@@ -1,9 +1,11 @@
-# Bagging for cv.cox_MDTL_enet
+# Bagging for MDTL-Integrated Cox Elastic-Net Models
 
-Implements bootstrap aggregation (bagging) for the `cv.cox_MDTL_enet`
-model. It generates `B` bootstrap samples from the internal data, fits
-the Cross-Validated Cox MDTL Elastic Net model on each sample, and
-aggregates the resulting coefficients.
+Performs bootstrap aggregation (bagging) for the
+Mahalanobis-distance–based transfer-learning Cox elastic-net model
+(`cv.cox_MDTL_enet`) by repeatedly refitting the model on bootstrap
+resamples of the internal dataset and averaging the resulting fitted
+coefficient vectors. This procedure reduces sampling variability and
+improves robustness relative to a single data split.
 
 ## Usage
 
@@ -34,75 +36,77 @@ cox_MDTL_enet_bagging(
 
 - z:
 
-  Matrix of predictors (n x p).
+  Matrix of predictors of dimension `n x p`.
 
 - delta:
 
-  Vector of event indicators.
+  Event indicator vector.
 
 - time:
 
-  Vector of survival times.
+  Survival time vector.
 
 - stratum:
 
-  Vector indicating the stratum.
+  Optional stratum indicator vector for stratified Cox modeling.
 
 - beta:
 
-  Vector of fixed external coefficients (length p). This is prior
-  information and is **not** resampled.
+  External coefficient vector of length `p`. Treated as fixed prior
+  information and not resampled across bootstrap replicates.
 
 - vcov:
 
-  Optional weighting matrix (p x p).
+  Optional weighting matrix (`p x p`) used in the Mahalanobis distance
+  formulation.
 
 - etas:
 
-  Sequence of eta values (transfer learning weights) to tune.
+  Vector of `eta` values for transfer-learning shrinkage.
 
 - alpha:
 
-  The Elastic Net mixing parameter, with \\0 \le \alpha \le 1\\.
-  `alpha=1` is the lasso penalty, and `alpha=0` the ridge penalty.
-  Default is 1.0.
+  Elastic-net mixing parameter between `0` and `1`. `alpha = 1`
+  corresponds to lasso; `alpha = 0` to ridge. Default is `1.0`.
 
 - B:
 
-  Integer. Number of bootstrap replicates. Default is 100.
+  Number of bootstrap replicates. Default is `100`.
 
 - lambda:
 
-  Optional user-supplied lambda sequence.
+  Optional user-specified `lambda` sequence.
 
 - nlambda:
 
-  Number of lambda values.
+  Number of `lambda` values to generate if `lambda` is not supplied.
 
 - lambda.min.ratio:
 
-  Ratio of min/max lambda.
+  Ratio of the smallest to the largest `lambda` when generating a
+  sequence.
 
 - nfolds:
 
-  Number of CV folds for the inner cross-validation.
+  Number of folds for inner cross-validation via `cv.cox_MDTL_enet`.
 
 - cv.criteria:
 
-  Cross-validation criteria.
+  Cross-validation criterion used for selecting the optimal
+  `(eta, lambda)` pair.
 
 - c_index_stratum:
 
-  Stratum vector for C-index calculation (if different from model
-  stratum).
+  Optional stratum assignment for stratified C-index evaluation (may
+  differ from model stratification).
 
 - message:
 
-  Logical. If TRUE, shows a progress bar.
+  Logical indicating whether to print progress. Default is `FALSE`.
 
 - seed:
 
-  Integer. Seed for reproducibility.
+  Optional integer seed for reproducibility.
 
 - ...:
 
@@ -112,40 +116,48 @@ cox_MDTL_enet_bagging(
 
 An object of class `"cox_MDTL_bagging"` containing:
 
-- `best_beta`: The averaged coefficient vector across all valid
-  bootstrap replicates.
+- `best_beta` — aggregated coefficient estimate obtained by averaging
+  across valid bootstrap replicates.
 
-- `all_betas`: A matrix (p x B) of coefficients from each bootstrap
-  replicate.
+- `all_betas` — matrix of dimension `p x B_valid` containing coefficient
+  vectors from each successful bootstrap fit.
 
-- `B`: Number of requested replicates.
+- `B` — total number of requested bootstrap replicates.
 
-- `valid_replicates`: Number of replicates that successfully converged.
+- `valid_replicates` — number of successful (non-error) fits
+  contributing to aggregation.
 
-- `seed`: The seed used.
+- `seed` — seed used for reproducibility (if supplied).
+
+## Details
+
+External information is supplied via a fixed coefficient vector (`beta`)
+and, optionally, a weighting matrix (`vcov`). Both represent external
+prior information and are **not** resampled across replicates.
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
 data(ExampleData_highdim)
-train_dat_highdim <- ExampleData_highdim$train
+train_dat_highdim     <- ExampleData_highdim$train
 beta_external_highdim <- ExampleData_highdim$beta_external
 
 etas <- generate_eta(method = "exponential", n = 10, max_eta = 10)
-bagging_res <- cox_MDTL_enet_bagging(
-  z = train_dat_highdim$z,
-  delta = train_dat_highdim$status,
-  time = train_dat_highdim$time,
-  stratum = train_dat_highdim$stratum,
-  beta = beta_external_highdim,
-  vcov = NULL,
-  etas = etas,
-  alpha = 0.5, # Elastic Net mixing
-  B = 5,
-  cv.criteria = "CIndex_pooled",
-  message = TRUE,
-  seed = 123
+
+bag.out <- cox_MDTL_enet_bagging(
+  z            = train_dat_highdim$z,
+  delta        = train_dat_highdim$status,
+  time         = train_dat_highdim$time,
+  stratum      = train_dat_highdim$stratum,
+  beta         = beta_external_highdim,
+  vcov         = NULL,
+  etas         = etas,
+  alpha        = 0.5,
+  B            = 5,
+  cv.criteria  = "CIndex_pooled",
+  message      = TRUE,
+  seed         = 123
 )
 } # }
 ```

@@ -16,7 +16,7 @@
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="default" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="inverse" aria-label="Site navigation"><div class="container">
 
     <a class="navbar-brand me-2" href="../index.html">SurvBregDiv</a>
 
@@ -29,14 +29,16 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
 <li class="active nav-item"><a class="nav-link" href="../articles/SurvBregDiv.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-appendix" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Appendix</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-appendix">
-<li><a class="dropdown-item" href="../articles/Methods.html">Methods</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="../articles/SurvBregDiv.html">Overview</a></li>
+    <li><a class="dropdown-item" href="../articles/Methods.html">Methods appendix</a></li>
   </ul>
 </li>
+<li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><a class="external-link nav-link" href="https://github.com/UM-KevinHe/SurvBregDiv" aria-label="GitHub repository"><span class="fa fa-github fa-lg"></span></a></li>
@@ -191,6 +193,9 @@ coefficients toward the external information.</li>
 <p>For both formulations, the optimal <code>eta</code> can be selected
 through cross-validation using <code><a href="../reference/cv.coxkl.html">cv.coxkl()</a></code> or
 <code><a href="../reference/cv.cox_MDTL.html">cv.cox_MDTL()</a></code>, respectively.</p>
+<div class="section level5">
+<h5 id="low-dimensional-example-dataset">Low-dimensional Example Dataset:<a class="anchor" aria-label="anchor" href="#low-dimensional-example-dataset"></a>
+</h5>
 <p>We illustrate the workflow using the built-in low-dimensional
 simulated dataset <code>ExampleData_lowdim</code>, which consists of a
 training set (100 samples) and a test set (2000 samples) with 6
@@ -213,6 +218,7 @@ via the internal utility <code><a href="../reference/generate_eta.html">generate
 integrated model across this grid:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">eta_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generate_eta.html">generate_eta</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"exponential"</span>, n <span class="op">=</span> <span class="fl">50</span>, max_eta <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre></div>
+</div>
 <div class="section level5">
 <h5 id="model-fitting">Model Fitting:<a class="anchor" aria-label="anchor" href="#model-fitting"></a>
 </h5>
@@ -307,7 +313,7 @@ criterion:</p>
 <span>  seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level5">
-<h5 id="model-visualization">Model Visualization:<a class="anchor" aria-label="anchor" href="#model-visualization"></a>
+<h5 id="visualization">Visualization:<a class="anchor" aria-label="anchor" href="#visualization"></a>
 </h5>
 <p>Objects of model fittings (i.e. from either <code>coxkl</code> or
 <code>cox_MDTL</code>) from can be visualized using the S3 plotting
@@ -359,10 +365,574 @@ information (<code>eta</code> &gt; 0) yields better predictive accuracy
 than relying solely on the internal model.</p>
 </div>
 </div>
+<div class="section level4">
+<h4 id="high-dimensional-integration">High-Dimensional Integration<a class="anchor" aria-label="anchor" href="#high-dimensional-integration"></a>
+</h4>
+<p>In high-dimensional regimes—such as when the number of predictors is
+comparable to or exceeds the sample size—the <code>SurvBregDiv</code>
+package extends Bregman-divergence–integrated Cox modeling with
+regularization. Similar to the low-dimensional setting, both
+<strong>Kullback–Leibler (KL) divergence</strong> and <strong>squared
+Mahalanobis distance</strong> are supported as specific Bregman choices
+for external information integration.</p>
+<p>Two families of penalties are implemented:</p>
+<ul>
+<li>
+<strong>Ridge penalty (L2)</strong>, via <code>coxkl_ridge</code>
+and <code>cox_MDTL_ridge</code>, which shrinks coefficients toward zero
+while yielding dense solutions.</li>
+<li>
+<strong>Elastic net penalty (mix of L1 and L2)</strong>, via
+<code>coxkl_enet</code> and <code>cox_MDTL_enet</code>, where the
+<strong>LASSO</strong> corresponds to the special case with mixing
+parameter set to 1.</li>
+</ul>
+<p>These models combine:</p>
+<ul>
+<li>an <strong>integration penalty</strong>, controlled by
+<code>eta</code>, to borrow information from external sources (risk
+scores <code>RS</code> or coefficients <code>beta</code>), and<br>
+</li>
+<li>a <strong>regularization penalty</strong> (ridge or elastic net) to
+stabilize estimation under high-dimensional designs.</li>
+</ul>
+<p>In what follows, we introduce the shared high-dimensional example
+dataset and demonstrate the usage of the penalized KL divergence
+model.</p>
+<p><em>Note: The squared Mahalanobis distance counterparts follow an
+identical workflow.</em></p>
+<div class="section level5">
+<h5 id="high-dimensional-example-dataset">High-dimensional Example Dataset:<a class="anchor" aria-label="anchor" href="#high-dimensional-example-dataset"></a>
+</h5>
+<p>The built-in high-dimensional simulated dataset
+<code>ExampleData_highdim</code> contains a training set (200 samples)
+and a test set (2000 samples). The dataset includes 50 predictors
+(<code>Z1</code>–<code>Z50</code>), of which 6 are signal variables and
+the remaining 44 are AR(1) noise variables. Externally derived
+coefficients are provided in <code>beta_external</code>:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">ExampleData_highdim</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">train_hd</span>  <span class="op">&lt;-</span> <span class="va">ExampleData_highdim</span><span class="op">$</span><span class="va">train</span></span>
+<span><span class="va">test_hd</span>   <span class="op">&lt;-</span> <span class="va">ExampleData_highdim</span><span class="op">$</span><span class="va">test</span></span>
+<span></span>
+<span><span class="va">z_hd</span>      <span class="op">&lt;-</span> <span class="va">train_hd</span><span class="op">$</span><span class="va">z</span></span>
+<span><span class="va">delta_hd</span>  <span class="op">&lt;-</span> <span class="va">train_hd</span><span class="op">$</span><span class="va">status</span></span>
+<span><span class="va">time_hd</span>   <span class="op">&lt;-</span> <span class="va">train_hd</span><span class="op">$</span><span class="va">time</span></span>
+<span><span class="va">strat_hd</span>  <span class="op">&lt;-</span> <span class="va">train_hd</span><span class="op">$</span><span class="va">stratum</span></span>
+<span></span>
+<span><span class="va">beta_external_hd</span> <span class="op">&lt;-</span> <span class="va">ExampleData_highdim</span><span class="op">$</span><span class="va">beta_external</span></span></code></pre></div>
+</div>
+<div class="section level5">
+<h5 id="model-fitting-1">Model Fitting:<a class="anchor" aria-label="anchor" href="#model-fitting-1"></a>
+</h5>
+<div class="section level6">
+<h6 id="ridge-penalized-integrated-cox-model">Ridge-Penalized Integrated Cox Model<a class="anchor" aria-label="anchor" href="#ridge-penalized-integrated-cox-model"></a>
+</h6>
+<p>The function <code><a href="../reference/coxkl_ridge.html">coxkl_ridge()</a></code> fits a KL-integrated Cox
+model with a ridge (L2) penalty on all predictors. External information
+is incorporated through a KL-based integration term weighted by
+<code>eta</code> (a user-specified scalar), while regularization is
+imposed through a sequence of tuning parameters <code>lambda</code>. If
+<code>lambda</code> is not provided, the function automatically
+generates a decreasing lambda path.</p>
+<p>We begin by fitting a KL–ridge model for a fixed integration weight
+<code>eta</code> using an automatically generated lambda sequence:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">model_ridge</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/coxkl_ridge.html">coxkl_ridge</a></span><span class="op">(</span></span>
+<span>  z        <span class="op">=</span> <span class="va">z_hd</span>,</span>
+<span>  delta    <span class="op">=</span> <span class="va">delta_hd</span>,</span>
+<span>  time     <span class="op">=</span> <span class="va">time_hd</span>,</span>
+<span>  stratum  <span class="op">=</span> <span class="va">strat_hd</span>,</span>
+<span>  beta     <span class="op">=</span> <span class="va">beta_external_hd</span>,</span>
+<span>  eta      <span class="op">=</span> <span class="fl">1</span>                 </span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The fitted object stores, for each value of <code>lambda</code>:</p>
+<ul>
+<li>
+<code>model_ridge$lambda</code> — the sequence of lambda values (in
+decreasing order),</li>
+<li>
+<code>model_ridge$beta</code> — estimated coefficients (one column
+per lambda),</li>
+<li>
+<code>model_ridge$linear.predictors</code> — linear predictors for
+all observations across the lambda path,</li>
+<li>
+<code>model_ridge$likelihood</code> — partial log-likelihood along
+the lambda path,</li>
+<li>
+<code>model_ridge$data</code> — the data used for fitting.</li>
+</ul>
+</div>
+<div class="section level6">
+<h6 id="elastic-net-lasso-penalized-integrated-cox-model">Elastic-Net / LASSO-Penalized Integrated Cox Model<a class="anchor" aria-label="anchor" href="#elastic-net-lasso-penalized-integrated-cox-model"></a>
+</h6>
+<p>The function <code><a href="../reference/coxkl_enet.html">coxkl_enet()</a></code> fits a KL-integrated Cox model
+with an elastic-net penalty, controlled by the mixing parameter
+<code>alpha</code>. When <code>alpha = 1</code>, the penalty reduces to
+<em>LASSO</em>, introducing coefficient sparsity in addition to KL-based
+integration of external information.</p>
+<p>External knowledge can be incorporated either through external
+coefficients (<code>beta</code>) or through an externally computed risk
+score (<code>RS</code>). The integration parameter <code>eta</code>
+determines how strongly the model borrows from this external
+information, while the penalty parameter <code>lambda</code> controls
+sparsity. If <code>lambda</code> is not provided, the function
+automatically generates a decreasing lambda sequence.</p>
+<p>Below, we illustrate the workflow using the <em>LASSO</em> special
+case (<code>alpha = 1</code>) with an automatically generated lambda
+path:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">model_enet</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/coxkl_enet.html">coxkl_enet</a></span><span class="op">(</span></span>
+<span>  z        <span class="op">=</span> <span class="va">z_hd</span>,</span>
+<span>  delta    <span class="op">=</span> <span class="va">delta_hd</span>,</span>
+<span>  time     <span class="op">=</span> <span class="va">time_hd</span>,</span>
+<span>  stratum  <span class="op">=</span> <span class="va">strat_hd</span>,</span>
+<span>  beta     <span class="op">=</span> <span class="va">beta_external_hd</span>,   </span>
+<span>  eta      <span class="op">=</span> <span class="fl">1</span>,                 </span>
+<span>  alpha    <span class="op">=</span> <span class="fl">1</span>                  <span class="co"># LASSO penalty</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The fitted object stores, for each lambda value:</p>
+<ul>
+<li>
+<code>model_enet$lambda</code> — the lambda sequence (in decreasing
+order),</li>
+<li>
+<code>model_enet$beta</code> — estimated coefficients (one column
+per lambda),</li>
+<li>
+<code>model_enet$likelihood</code> — partial log-likelihood along
+the lambda path,</li>
+<li>
+<code>model_enet$data</code> — the data used for fitting.</li>
+</ul>
+</div>
+</div>
+<div class="section level5">
+<h5 id="hyperparameter-tuning-via-cross-validation-1">Hyperparameter Tuning via Cross-Validation<a class="anchor" aria-label="anchor" href="#hyperparameter-tuning-via-cross-validation-1"></a>
+</h5>
+<p>For penalized integrated models, the functions
+<code><a href="../reference/cv.coxkl_ridge.html">cv.coxkl_ridge()</a></code> and <code><a href="../reference/cv.coxkl_enet.html">cv.coxkl_enet()</a></code> perform
+K-fold cross-validation to tune the integration parameter
+<code>eta</code>, while internally scanning over a <code>lambda</code>
+path for each candidate <code>eta</code>. For each value of
+<code>eta</code>, the cross-validation procedure:</p>
+<ul>
+<li>evaluates a sequence of ridge or elastic-net penalties
+<code>lambda</code>,</li>
+<li>computes the chosen cross-validation criterion on the held-out
+folds,</li>
+<li>selects the best <code>lambda</code> for that <code>eta</code>,</li>
+<li>aggregates the performance across folds into summary tables.</li>
+</ul>
+<p>The following criteria are supported:</p>
+<ul>
+<li>
+<code>"V&amp;VH"</code> — V&amp;VH loss (reported as
+<code>Loss = -2 * score</code>),</li>
+<li>
+<code>"LinPred"</code> — predicted partial deviance,</li>
+<li>
+<code>"CIndex_pooled"</code> — pooled C-index across all folds,</li>
+<li>
+<code>"CIndex_foldaverage"</code> — fold-averaged C-index.</li>
+</ul>
+<p>Below we demonstrate tuning <code>eta</code> using 5-fold
+cross-validation and the <code>"V&amp;VH"</code> criterion for the
+LASSO-penalized integrated model (<code>alpha = 1</code>). (For ridge,
+use <code><a href="../reference/cv.coxkl_ridge.html">cv.coxkl_ridge()</a></code> analogously.)</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">eta_grid_hd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generate_eta.html">generate_eta</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"exponential"</span>,</span>
+<span>                            n <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>                            max_eta <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cv_enet_hd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.coxkl_enet.html">cv.coxkl_enet</a></span><span class="op">(</span></span>
+<span>  z <span class="op">=</span> <span class="va">z_hd</span>,</span>
+<span>  delta <span class="op">=</span> <span class="va">delta_hd</span>,</span>
+<span>  time <span class="op">=</span> <span class="va">time_hd</span>,</span>
+<span>  stratum <span class="op">=</span> <span class="va">strat_hd</span>,</span>
+<span>  beta <span class="op">=</span> <span class="va">beta_external_hd</span>,</span>
+<span>  etas <span class="op">=</span> <span class="va">eta_grid_hd</span>,</span>
+<span>  alpha <span class="op">=</span> <span class="fl">1</span>, <span class="co"># LASSO</span></span>
+<span>  nfolds <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  cv.criteria <span class="op">=</span> <span class="st">"V&amp;VH"</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">1</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The best <code>lambda</code> for each <code>eta</code> (according to
+the chosen criterion) is provided by:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cv_enet_hd</span><span class="op">$</span><span class="va">integrated_stat.best_per_eta</span></span></code></pre></div>
+<pre><code><span><span class="co">##             eta       lambda     Loss</span></span>
+<span><span class="co">## 1    0.00000000 1.019360e-01 2.842157</span></span>
+<span><span class="co">## 2    0.09953651 9.773006e-02 2.840152</span></span>
+<span><span class="co">## 3    0.20888146 9.390799e-02 2.838419</span></span>
+<span><span class="co">## 4    0.32900138 2.575599e-02 2.829181</span></span>
+<span><span class="co">## 5    0.46095806 2.161908e-02 2.817568</span></span>
+<span><span class="co">## 6    0.60591790 1.818471e-02 2.806310</span></span>
+<span><span class="co">## 7    0.76516225 1.583720e-02 2.795556</span></span>
+<span><span class="co">## 8    0.94009872 1.487692e-02 2.786297</span></span>
+<span><span class="co">## 9    1.13227362 1.302389e-02 2.778563</span></span>
+<span><span class="co">## 10   1.34338567 1.139452e-02 2.772374</span></span>
+<span><span class="co">## 11   1.57530093 1.068340e-02 2.767340</span></span>
+<span><span class="co">## 12   1.83006939 9.336846e-03 2.763147</span></span>
+<span><span class="co">## 13   2.10994303 8.156289e-03 2.759722</span></span>
+<span><span class="co">## 14   2.41739573 7.636767e-03 2.756923</span></span>
+<span><span class="co">## 15   2.75514517 6.665955e-03 2.754581</span></span>
+<span><span class="co">## 16   3.12617683 1.168692e-03 2.752477</span></span>
+<span><span class="co">## 17   3.53377037 8.866867e-04 2.747700</span></span>
+<span><span class="co">## 18   3.98152865 1.553666e-04 2.743494</span></span>
+<span><span class="co">## 19   4.47340953 8.912293e-05 2.739607</span></span>
+<span><span class="co">## 20   5.01376093 8.931986e-05 2.736818</span></span>
+<span><span class="co">## 21   5.60735916 8.949908e-05 2.734883</span></span>
+<span><span class="co">## 22   6.25945124 8.966217e-05 2.733633</span></span>
+<span><span class="co">## 23   6.97580122 8.981060e-05 2.732915</span></span>
+<span><span class="co">## 24   7.76274115 8.994568e-05 2.732588</span></span>
+<span><span class="co">## 25   8.62722703 9.006861e-05 2.732567</span></span>
+<span><span class="co">## 26   9.57690034 9.018050e-05 2.732783</span></span>
+<span><span class="co">## 27  10.62015555 9.028233e-05 2.733161</span></span>
+<span><span class="co">## 28  11.76621431 9.037501e-05 2.733665</span></span>
+<span><span class="co">## 29  13.02520701 9.045937e-05 2.734254</span></span>
+<span><span class="co">## 30  14.40826229 9.053614e-05 2.734904</span></span>
+<span><span class="co">## 31  15.92760542 9.060603e-05 2.735591</span></span>
+<span><span class="co">## 32  17.59666636 9.066963e-05 2.736292</span></span>
+<span><span class="co">## 33  19.43019846 9.072753e-05 2.736987</span></span>
+<span><span class="co">## 34  21.44440891 9.078022e-05 2.737676</span></span>
+<span><span class="co">## 35  23.65710197 9.082819e-05 2.738336</span></span>
+<span><span class="co">## 36  26.08783632 9.087185e-05 2.739012</span></span>
+<span><span class="co">## 37  28.75809801 9.091159e-05 2.739655</span></span>
+<span><span class="co">## 38  31.69149033 9.094776e-05 2.740275</span></span>
+<span><span class="co">## 39  34.91394249 9.098069e-05 2.740907</span></span>
+<span><span class="co">## 40  38.45393876 9.101066e-05 2.741567</span></span>
+<span><span class="co">## 41  42.34277030 9.103794e-05 2.742080</span></span>
+<span><span class="co">## 42  46.61481175 9.106278e-05 2.742553</span></span>
+<span><span class="co">## 43  51.30782504 9.108538e-05 2.742993</span></span>
+<span><span class="co">## 44  56.46329322 9.110596e-05 2.743404</span></span>
+<span><span class="co">## 45  62.12678712 9.112469e-05 2.743741</span></span>
+<span><span class="co">## 46  68.34836818 9.114174e-05 2.744012</span></span>
+<span><span class="co">## 47  75.18303094 9.115726e-05 2.744249</span></span>
+<span><span class="co">## 48  82.69118918 9.117139e-05 2.744425</span></span>
+<span><span class="co">## 49  90.93920990 9.118424e-05 2.744550</span></span>
+<span><span class="co">## 50 100.00000000 9.119595e-05 2.744670</span></span></code></pre>
+</div>
+<div class="section level5">
+<h5 id="visualization-1">Visualization:<a class="anchor" aria-label="anchor" href="#visualization-1"></a>
+</h5>
+<p>Objects from <code>coxkl_ridge</code> or <code>coxkl_enet</code> can
+be visualized using the S3 plotting method <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>:</p>
+<p>This plots (at given <code>eta</code>):</p>
+<ul>
+<li>Loss or C-index versus the penalty parameter
+<code>lambda</code>,</li>
+<li>x-axis on a reversed log10 scale (larger penalties on the left,
+smaller penalties on the right),</li>
+<li>y-axis labeled as loss or C-index,.</li>
+<li>A vertical dashed orange line marks the optimal value of λ, where
+the loss reaches its minimum on the evaluated grid.</li>
+</ul>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
+<span>  <span class="va">model_enet</span>,</span>
+<span>  test_z       <span class="op">=</span> <span class="va">test_hd</span><span class="op">$</span><span class="va">z</span>,</span>
+<span>  test_time    <span class="op">=</span> <span class="va">test_hd</span><span class="op">$</span><span class="va">time</span>,</span>
+<span>  test_delta   <span class="op">=</span> <span class="va">test_hd</span><span class="op">$</span><span class="va">status</span>,</span>
+<span>  test_stratum <span class="op">=</span> <span class="va">test_hd</span><span class="op">$</span><span class="va">stratum</span>,</span>
+<span>  criteria     <span class="op">=</span> <span class="st">"loss"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-20-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p>As with low-dimensional models, the helper function
+<code><a href="../reference/cv.plot.html">cv.plot()</a></code> can be used to visualize performance versus
+<code>eta</code>:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cv.plot.html">cv.plot</a></span><span class="op">(</span><span class="va">cv_enet_hd</span><span class="op">)</span></span></code></pre></div>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-21-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700">
+The resulting plot displays:</p>
+<ul>
+<li>a purple curve showing the cross-validated performance across the
+<code>eta</code> sequence (loss or C-index),</li>
+<li>a green dotted horizontal line indicating the internal baseline at
+<code>eta = 0</code>,</li>
+<li>a green point marking the baseline performance,</li>
+<li>and a vertical dashed orange line denoting the optimal
+<code>eta</code>, where the cross-validated loss attains its
+minimum.</li>
+</ul>
+</div>
+<div class="section level5">
+<h5 id="stability-selection-for-high-dimensional-models">Stability Selection for High-Dimensional Models<a class="anchor" aria-label="anchor" href="#stability-selection-for-high-dimensional-models"></a>
+</h5>
+<p>Classical LASSO tuned via cross-validation performs well for
+prediction, but it is often unstable for variable selection: small
+perturbations of the data or changes in cross-validation splits may lead
+to different selected subsets, particularly in high-dimensional or
+correlated settings. Stability selection provides a complementary
+approach that emphasizes reproducibility by repeatedly perturbing the
+data and recording how frequently each variable is selected across
+subsamples.</p>
+<p>The functions <code><a href="../reference/coxkl_enet.StabSelect.html">coxkl_enet.StabSelect()</a></code> and
+<code><a href="../reference/cox_MDTL_enet.StabSelect.html">cox_MDTL_enet.StabSelect()</a></code> extend the cross-validated
+elastic-net procedures (<code><a href="../reference/cv.coxkl_enet.html">cv.coxkl_enet()</a></code> and
+<code><a href="../reference/cv.cox_MDTL_enet.html">cv.cox_MDTL_enet()</a></code>) by repeatedly fitting the integrated
+elastic-net model on multiple subsamples (controlled by the parameter
+<code>B</code>). For each subsample, the model is fit using its own
+cross-validated tuning parameters, and the selection status of each
+variable along the regularization path is recorded. The function returns
+the empirical selection frequency of each variable across resamples and
+across the entire penalty path, providing a stability-oriented summary
+of variable importance.</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">coxkl.StabSelect</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/coxkl_enet.StabSelect.html">coxkl_enet.StabSelect</a></span><span class="op">(</span></span>
+<span>  z <span class="op">=</span> <span class="va">z_hd</span>,</span>
+<span>  delta <span class="op">=</span> <span class="va">delta_hd</span>,</span>
+<span>  time <span class="op">=</span> <span class="va">time_hd</span>,</span>
+<span>  stratum <span class="op">=</span> <span class="va">strat_hd</span>,</span>
+<span>  beta <span class="op">=</span> <span class="va">beta_external_hd</span>,</span>
+<span>  etas <span class="op">=</span> <span class="va">eta_list</span>,</span>
+<span>  cv.criteria <span class="op">=</span> <span class="st">"CIndex_pooled"</span>,</span>
+<span>  B <span class="op">=</span> <span class="fl">20</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><code>ox_MDTL_enet.StabSelect</code> follows an identical workflow.
+Objects from
+<code>coxkkl_enet.StabSelect or</code>ccox_MDTL_enet.StabSelect can be
+visualized using the S3 plotting method <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>:,
+用户需要指定 a selection frequency threshold (between 0 and 1).
+Variables whose selection frequency exceeds this threshold are
+highlighted in the plot, while others are shown in a muted color. The
+x-axis represents the penalty parameter <code>lambda</code> on a
+reversed log10 scale, and the y-axis shows the selection frequency:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">coxkl.StabSelect</span>, threshold <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span> </span></code></pre></div>
+<pre><code><span><span class="co">## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.</span></span>
+<span><span class="co">## <span style="color: #00BBBB;">ℹ</span> Please use `linewidth` instead.</span></span>
+<span><span class="co">## <span style="color: #00BBBB;">ℹ</span> The deprecated feature was likely used in the <span style="color: #0000BB;">SurvBregDiv</span> package.</span></span>
+<span><span class="co">##   Please report the issue to the authors.</span></span>
+<span><span class="co">## <span style="color: #555555;">This warning is displayed once per session.</span></span></span>
+<span><span class="co">## <span style="color: #555555;">Call `lifecycle::last_lifecycle_warnings()` to see where this warning was</span></span></span>
+<span><span class="co">## <span style="color: #555555;">generated.</span></span></span></code></pre>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-23-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+</div>
+<div class="section level5">
+<h5 id="bagging-for-high-dimensional-models">Bagging for High-Dimensional Models<a class="anchor" aria-label="anchor" href="#bagging-for-high-dimensional-models"></a>
+</h5>
+<p>Besides cross-validated LASSO and stability selection, we
+additionally support an ensemble strategy that combines bootstrapping,
+external-data integration, and model aggregation. Conceptually similar
+to bootstrap aggregation (bagging).</p>
+<p>For each bootstrap sample, the integrated model is refit with its own
+cross-validated tuning parameters, and the resulting linear predictors
+are aggregated across bootstrap replicates. Unlike stability selection,
+the goal here is not variable selection, but prediction stabilization:
+different bootstrap replicates may recruit different levels of external
+borrowing, allowing weak or noisy external signals to be averaged out
+rather than over-amplified by a single fit. As a result, this bagged
+integration approach reduces variance and improves predictive robustness
+compared to relying solely on a single cross-validated integrated LASSO
+model.</p>
+<p>The functions <code><a href="../reference/coxkl_enet_bagging.html">coxkl_enet_bagging()</a></code> and
+<code><a href="../reference/cox_MDTL_enet_bagging.html">cox_MDTL_enet_bagging()</a></code> implement this ensemble strategy.
+The following example demonstrates how to apply
+<code><a href="../reference/coxkl_enet_bagging.html">coxkl_enet_bagging()</a></code> for bagged integration in
+high-dimensional settings. The function inherits the arguments of
+<code><a href="../reference/cv.coxkl_enet.html">cv.coxkl_enet()</a></code>, with an additional parameter
+<code>B</code> that controls the number of subsamples used in the
+ensemble.</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bagging.coxkl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/coxkl_enet_bagging.html">coxkl_enet_bagging</a></span><span class="op">(</span></span>
+<span>  z <span class="op">=</span> <span class="va">z_hd</span>,</span>
+<span>  delta <span class="op">=</span> <span class="va">delta_hd</span>,</span>
+<span>  time <span class="op">=</span> <span class="va">time_hd</span>,</span>
+<span>  stratum <span class="op">=</span> <span class="va">strat_hd</span>,</span>
+<span>  beta <span class="op">=</span> <span class="va">beta_external_hd</span>,</span>
+<span>  etas <span class="op">=</span> <span class="va">eta_list</span>,</span>
+<span>  B <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">1</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The returned object contains the bagged coefficient estimate (stored
+in <code>bagging.coxkl$best_beta</code>) as well as the all
+bootstrap-specific estimates (<code>bagging.coxkl$all_betas</code>). In
+practice, <code>bagging.coxkl$best_beta</code> can be treated as the
+final integrated elastic-net coefficient vector for downstream analysis;
+for example, risk scores on a new design matrix <code>z_new</code> can
+be computed via the linear predictor
+<code>z_new %*% bagging.coxkl$best_beta</code>, while
+<code>bagging.coxkl$all_betas</code> can be inspected to assess the
+variability of the bootstrap ensemble.</p>
+</div>
+</div>
 </div>
 <div class="section level3">
-<h3 id="nested-case-control-design-with-bregman-divergence-integration">Nested Case-Control Design with Bregman Divergence Integration<a class="anchor" aria-label="anchor" href="#nested-case-control-design-with-bregman-divergence-integration"></a>
+<h3 id="nested-case-control-ncc-design-with-bregman-divergence-integration">Nested Case-Control (NCC) Design with Bregman Divergence
+Integration<a class="anchor" aria-label="anchor" href="#nested-case-control-ncc-design-with-bregman-divergence-integration"></a>
 </h3>
+<p>In the NCC setting, event times are represented through matched
+case–control sets and estimation proceeds via conditional logistic
+regression. <code>SurvBregDiv</code> enables external information
+borrowing within this framework through Bregman divergence, allowing
+improved efficiency while respecting the matched-set structure. The
+remainder of this section demonstrates the core usage and workflow.</p>
+<div class="section level4">
+<h4 id="low-dimensional-integration-1">Low-Dimensional Integration<a class="anchor" aria-label="anchor" href="#low-dimensional-integration-1"></a>
+</h4>
+<div class="section level5">
+<h5 id="example-dataset">Example Dataset:<a class="anchor" aria-label="anchor" href="#example-dataset"></a>
+</h5>
+<p>The built-in simulated dataset for NCC designs,
+<code>ExampleData_cc</code>, contains a training set (1000 samples) and
+a test set (2500 samples). The data include a <code>stratum</code>
+variable, where observations with the same stratum ID belong to the same
+matched set. The training data contain 200 matched sets and the test
+data contain 500 matched sets, each constructed under a 1:4 matching
+scheme. The dataset further includes six predictors
+(<code>Z1</code>–<code>Z6</code>). Externally derived coefficients are
+provided in <code>beta_external</code>:</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">ExampleData_cc</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">train.cc</span>  <span class="op">&lt;-</span> <span class="va">ExampleData_cc</span><span class="op">$</span><span class="va">train</span></span>
+<span><span class="va">test.cc</span>   <span class="op">&lt;-</span> <span class="va">ExampleData_cc</span><span class="op">$</span><span class="va">test</span></span>
+<span></span>
+<span><span class="va">z.cc</span>      <span class="op">&lt;-</span> <span class="va">train.cc</span><span class="op">$</span><span class="va">z</span></span>
+<span><span class="va">y.cc</span>      <span class="op">&lt;-</span> <span class="va">train.cc</span><span class="op">$</span><span class="va">y</span></span>
+<span><span class="va">set.cc</span>    <span class="op">&lt;-</span> <span class="va">train.cc</span><span class="op">$</span><span class="va">stratum</span></span>
+<span></span>
+<span><span class="va">beta_ext.cc</span> <span class="op">&lt;-</span> <span class="va">ExampleData_cc</span><span class="op">$</span><span class="va">beta_external</span></span></code></pre></div>
+</div>
+<div class="section level5">
+<h5 id="model-fitting-and-hyperparameter-tuning">Model Fitting and Hyperparameter Tuning<a class="anchor" aria-label="anchor" href="#model-fitting-and-hyperparameter-tuning"></a>
+</h5>
+<p>The main fitting function for this setting is <code>clogitkl</code>.
+Users must specify the tie-handling method via the <code>method</code>
+argument. For 1:M matched case–control studies, <code>"breslow"</code>
+and <code>"exact"</code> yield identical results, although
+<code>"exact"</code> is theoretically preferable. For n:m matched
+designs with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>&gt;</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n &gt; 1</annotation></semantics></math>,
+the two methods can differ.</p>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">eta_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generate_eta.html">generate_eta</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"exponential"</span>, n <span class="op">=</span> <span class="fl">50</span>, max_eta <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">clogitkl.fit_breslow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clogitkl.html">clogitkl</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y.cc</span>, z <span class="op">=</span> <span class="va">z.cc</span>, stratum <span class="op">=</span> <span class="va">set.cc</span>, </span>
+<span>                                 eta <span class="op">=</span> <span class="va">eta_list</span>, beta <span class="op">=</span> <span class="va">beta_ext.cc</span>,</span>
+<span>                                 method <span class="op">=</span> <span class="st">"breslow"</span><span class="op">)</span></span></code></pre></div>
+<p>The object returned by <code>clogitkl</code> can be visualized using
+the S3 <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method. Its usage is consistent with the
+full-cohort integrated Cox model introduced earlier:</p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
+<span>  <span class="va">clogitkl.fit_breslow</span>,</span>
+<span>  test_z       <span class="op">=</span> <span class="va">test.cc</span><span class="op">$</span><span class="va">z</span>,</span>
+<span>  test_delta   <span class="op">=</span> <span class="va">test.cc</span><span class="op">$</span><span class="va">y</span>,</span>
+<span>  test_stratum <span class="op">=</span> <span class="va">test.cc</span><span class="op">$</span><span class="va">stratum</span>,</span>
+<span>  criteria     <span class="op">=</span> <span class="st">"loss"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-27-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p>Similarly, cross-validation for tuning <code>eta</code> can be
+performed via <code><a href="../reference/cv.clogitkl.html">cv.clogitkl()</a></code>, which shares the same
+interface and functionality as its full-cohort counterparts:</p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cv.clogitkl.fit_breslow</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.clogitkl.html">cv.clogitkl</a></span><span class="op">(</span></span>
+<span>  y        <span class="op">=</span> <span class="va">y.cc</span>,</span>
+<span>  z        <span class="op">=</span> <span class="va">z.cc</span>,</span>
+<span>  stratum  <span class="op">=</span> <span class="va">set.cc</span>,</span>
+<span>  beta     <span class="op">=</span> <span class="va">beta_ext.cc</span>,</span>
+<span>  etas     <span class="op">=</span> <span class="va">eta_list</span>,</span>
+<span>  method   <span class="op">=</span> <span class="st">"exact"</span>,</span>
+<span>  nfolds   <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  criteria <span class="op">=</span> <span class="st">"loss"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The cross-validated performance curve can be visualized using
+<code><a href="../reference/cv.plot.html">cv.plot()</a></code>:</p>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cv.plot.html">cv.plot</a></span><span class="op">(</span><span class="va">cv.clogitkl.fit_breslow</span><span class="op">)</span></span></code></pre></div>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-29-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700">
+As before, the plot displays a purple curve tracing the cross-validated
+performance across the <code>eta</code> grid, a green dotted horizontal
+line representing the internal baseline at <code>eta = 0</code> (with a
+green point marking its value), and a vertical dashed orange line
+indicating the optimal <code>eta</code> at which the cross-validated
+loss is minimized.</p>
+</div>
+</div>
+<div class="section level4">
+<h4 id="high-dimensional-integration-1">High-Dimensional Integration<a class="anchor" aria-label="anchor" href="#high-dimensional-integration-1"></a>
+</h4>
+<div class="section level5">
+<h5 id="example-dataset-1">Example Dataset:<a class="anchor" aria-label="anchor" href="#example-dataset-1"></a>
+</h5>
+<p>The built-in simulated dataset for NCC designs,
+<code>ExampleData_cc_highdim</code>, contains a training set with 50
+matched sets and a test set with 500 matched sets, each constructed
+under a 1:5 matching scheme. The dataset includes 10 predictors
+(<code>Z1</code>–<code>Z20</code>). Externally derived coefficients are
+provided in <code>beta_external</code>:</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">ExampleData_cc_highdim</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">train.cc_hd</span>  <span class="op">&lt;-</span> <span class="va">ExampleData_cc_highdim</span><span class="op">$</span><span class="va">train</span></span>
+<span><span class="va">test.cc_hd</span>   <span class="op">&lt;-</span> <span class="va">ExampleData_cc_highdim</span><span class="op">$</span><span class="va">test</span></span>
+<span></span>
+<span><span class="va">z.cc_hd</span>      <span class="op">&lt;-</span> <span class="va">train.cc_hd</span><span class="op">$</span><span class="va">z</span></span>
+<span><span class="va">y.cc_hd</span>      <span class="op">&lt;-</span> <span class="va">train.cc_hd</span><span class="op">$</span><span class="va">y</span></span>
+<span><span class="va">set.cc_hd</span>    <span class="op">&lt;-</span> <span class="va">train.cc_hd</span><span class="op">$</span><span class="va">stratum</span></span>
+<span></span>
+<span><span class="va">beta_ext.cc_hd</span> <span class="op">&lt;-</span> <span class="va">ExampleData_cc_highdim</span><span class="op">$</span><span class="va">beta_external</span></span></code></pre></div>
+</div>
+<div class="section level5">
+<h5 id="model-fitting-and-hyperparameter-tuning-1">Model Fitting and Hyperparameter Tuning<a class="anchor" aria-label="anchor" href="#model-fitting-and-hyperparameter-tuning-1"></a>
+</h5>
+<p>For high-dimensional NCC data, we demonstrate usage with
+<code><a href="../reference/clogitkl_enet.html">clogitkl_enet()</a></code>, which fits KL-integrated conditional
+logistic regression models with elastic-net penalties. The interface and
+workflow are analogous to those for the full-cohort integrated Cox
+functions.</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">clogitkl_enet_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/clogitkl_enet.html">clogitkl_enet</a></span><span class="op">(</span></span>
+<span>  y       <span class="op">=</span> <span class="va">y.cc_hd</span>,</span>
+<span>  z       <span class="op">=</span> <span class="va">z.cc_hd</span>,</span>
+<span>  stratum <span class="op">=</span> <span class="va">set.cc_hd</span>,</span>
+<span>  beta    <span class="op">=</span> <span class="va">beta_ext.cc_hd</span>,</span>
+<span>  eta     <span class="op">=</span> <span class="fl">0</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## Warning: alpha is not provided. Setting alpha = 1 (lasso penalty).</span></span></code></pre>
+<p>The fitted object can be visualized using the S3 <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>
+method:</p>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
+<span>  <span class="va">clogitkl_enet_fit</span>,</span>
+<span>  test_z       <span class="op">=</span> <span class="va">test.cc_hd</span><span class="op">$</span><span class="va">z</span>,</span>
+<span>  test_delta   <span class="op">=</span> <span class="va">test.cc_hd</span><span class="op">$</span><span class="va">y</span>,</span>
+<span>  test_stratum <span class="op">=</span> <span class="va">test.cc_hd</span><span class="op">$</span><span class="va">stratum</span>,</span>
+<span>  criteria     <span class="op">=</span> <span class="st">"loss"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-32-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p>Cross-validation for tuning <code>eta</code> can be performed via
+<code><a href="../reference/cv.clogitkl_enet.html">cv.clogitkl_enet()</a></code>:</p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">eta_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generate_eta.html">generate_eta</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"exponential"</span>, n <span class="op">=</span> <span class="fl">50</span>, max_eta <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cv.clogitkl_enet_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.clogitkl_enet.html">cv.clogitkl_enet</a></span><span class="op">(</span></span>
+<span>  y        <span class="op">=</span> <span class="va">y.cc_hd</span>,</span>
+<span>  z        <span class="op">=</span> <span class="va">z.cc_hd</span>,</span>
+<span>  stratum  <span class="op">=</span> <span class="va">set.cc_hd</span>,</span>
+<span>  beta     <span class="op">=</span> <span class="va">beta_ext.cc_hd</span>,</span>
+<span>  etas     <span class="op">=</span> <span class="va">eta_list</span>,</span>
+<span>  alpha    <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  nfolds   <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  criteria <span class="op">=</span> <span class="st">"loss"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The cross-validated performance curve can be visualized using
+<code><a href="../reference/cv.plot.html">cv.plot()</a></code>:</p>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/cv.plot.html">cv.plot</a></span><span class="op">(</span><span class="va">cv.clogitkl_enet_fit</span><span class="op">)</span></span></code></pre></div>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-34-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p>As before, the plot displays a purple curve tracing the
+cross-validated performance across the <code>eta</code> grid, a green
+dotted horizontal line representing the internal baseline at
+<code>eta = 0</code> (with a green point marking its value), and a
+vertical dashed orange line indicating the optimal <code>eta</code> at
+which the cross-validated loss is minimized.</p>
+</div>
+</div>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

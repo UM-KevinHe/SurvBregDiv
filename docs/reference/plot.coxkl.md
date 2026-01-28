@@ -9,7 +9,7 @@ against the "Internal" baseline (dotted line, eta=0).
 ``` r
 # S3 method for class 'coxkl'
 plot(
-  object,
+  x,
   test_z = NULL,
   test_time = NULL,
   test_delta = NULL,
@@ -21,7 +21,7 @@ plot(
 
 ## Arguments
 
-- object:
+- x:
 
   An object of class `"coxkl"`.
 

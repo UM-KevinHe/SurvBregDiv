@@ -2,7 +2,7 @@
 % Please edit documentation in R/StabSelect.R
 \name{coxkl_enet.StabSelect}
 \alias{coxkl_enet.StabSelect}
-\title{Stability Selection for Cox-KL Enet Model}
+\title{Stability Selection for KL-Integrated Cox Elastic-Net Models}
 \usage{
 coxkl_enet.StabSelect(
   z,
@@ -72,25 +72,52 @@ to be computed while the fitted model is non-stratified. Default is \code{NULL}.
 
 \item{seed}{Optional integer. Random seed for reproducible fold assignment.}
 
-\item{B}{Integer. Number of bootstrap/subsampling replicates. Default is 50.}
+\item{B}{Integer. Number of bootstrap/subsampling replicates used for
+stability selection. Default is \code{50}.}
 
-\item{fraction_sample}{Numeric. Fraction of data to use for subsampling in each replicate. Default is 0.5.}
+\item{fraction_sample}{Numeric in \code{(0, 1]}. Fraction of the original
+sample size used in each replicate (without replacement if subsampling is
+used). Default is \code{0.5}.}
 
 \item{...}{Additional arguments passed to the underlying fitting function \code{\link{coxkl_enet}}.}
 }
 \value{
-An object of class \code{StabSelect}, which is a list containing:
-\item{stability_path}{A matrix (n_vars x n_lambda) of selection probabilities.}
-\item{lambda}{The global lambda sequence used.}
+An object of class \code{"StabSelect"}, which is a list containing:
+\item{stability_path}{A numeric matrix of dimension
+\code{n_vars x n_lambda} giving, for each variable (rows) and each value of
+\code{lambda} (columns), the empirical selection probability across the
+\code{B} replicates.}
+\item{lambda}{Numeric vector giving the global \code{lambda} sequence used
+for the underlying elastic-net fits.}
 }
 \description{
-Stability Selection for Cox-KL Enet Model
+Performs stability selection for the KL-integrated Cox elastic-net model
+by repeatedly refitting the model on bootstrap or subsampled datasets and
+aggregating variable selection frequencies across replicates. This procedure
+provides a robust measure of variable importance that is less sensitive to
+a single split of the data.
 }
 \examples{
 \dontrun{
 data(ExampleData_highdim)
+train_dat_highdim      <- ExampleData_highdim$train
+beta_external_highdim  <- ExampleData_highdim$beta_external
 
-# Plot with different thresholds without re-running
+eta_list <- generate_eta(method = "exponential", n = 10, max_eta = 50)
+
+coxkl.StabSelect <- coxkl_enet.StabSelect(
+  z            = train_dat_highdim$z,
+  delta        = train_dat_highdim$status,
+  time         = train_dat_highdim$time,
+  stratum      = train_dat_highdim$stratum,
+  beta         = beta_external_highdim,
+  etas         = eta_list,
+  cv.criteria  = "CIndex_pooled",
+  B            = 20,
+  message      = TRUE
+)
+
+# Plot with different thresholds without re-running stability selection
 plot(coxkl.StabSelect, threshold = 0.6)
 plot(coxkl.StabSelect, threshold = 0.8)
 }

@@ -1,44 +1,76 @@
-#' Bagging for cv.coxkl_enet
+#' Bagging for KL-Integrated Cox Elastic-Net Models
 #'
-#' @param z Matrix of predictors (n x p).
-#' @param delta Vector of event indicators.
-#' @param time Vector of survival times.
-#' @param stratum Vector indicating the stratum.
-#' @param RS Vector of external risk scores. Resampled during bagging.
-#' @param beta Vector of fixed external coefficients. Not resampled.
-#' @param etas Sequence of eta values.
-#' @param alpha Elastic net mixing parameter.
-#' @param B Number of bootstrap replicates.
-#' @param lambda Optional lambda sequence.
-#' @param nlambda Number of lambda values.
-#' @param lambda.min.ratio Ratio of min/max lambda.
-#' @param nfolds Number of CV folds.
-#' @param cv.criteria Cross-validation criteria.
-#' @param c_index_stratum Stratum for C-index calculation.
-#' @param message Logical. Print progress.
-#' @param seed Seed for reproducibility.
-#' @param ... Additional arguments for cv.coxkl_enet.
+#' Performs bootstrap aggregation (bagging) for the KL-integrated Cox
+#' elastic-net model by repeatedly applying \code{cv.coxkl_enet} on bootstrap
+#' resamples of the data. The procedure aggregates fitted coefficient vectors
+#' across replicates to produce a more stable estimate that is less sensitive
+#' to sampling variation or a single data split.
 #'
-#' @return An object of class "bagging".
+#' External information may be supplied either as a fixed coefficient vector
+#' (\code{beta}) or as pre-computed external risk scores (\code{RS}). When
+#' \code{RS} is provided, it is resampled along with the bootstrap replicates;
+#' when \code{beta} is provided, it is treated as fixed across replicates and
+#' not resampled.
+#'
+#' @param z Matrix of predictors of dimension \code{n x p}.
+#' @param delta Event indicator vector.
+#' @param time Survival time vector.
+#' @param stratum Optional stratum indicator vector for stratified Cox models.
+#' @param RS Optional matrix or vector of external risk scores. If provided, it
+#'   is resampled within each bootstrap replicate.
+#' @param beta Optional vector of external coefficients. If provided, it is
+#'   treated as fixed and not resampled.
+#' @param etas Vector of \code{eta} values for transfer-learning shrinkage.
+#' @param alpha Elastic-net mixing parameter (between \code{0} and \code{1}).
+#' @param B Number of bootstrap replicates. Default is \code{100}.
+#' @param lambda Optional user-specified \code{lambda} sequence for the
+#'   underlying elastic-net fit.
+#' @param nlambda Number of \code{lambda} values to generate if \code{lambda}
+#'   is not supplied.
+#' @param lambda.min.ratio Ratio of smallest to largest \code{lambda} value
+#'   when generating a \code{lambda} sequence.
+#' @param nfolds Number of folds for cross-validation in
+#'   \code{cv.coxkl_enet}.
+#' @param cv.criteria Cross-validation criterion used for selecting
+#'   \code{eta}–\code{lambda} pairs.
+#' @param c_index_stratum Optional stratum assignment for stratified C-index
+#'   evaluation.
+#' @param message Logical indicating whether to print progress.
+#' @param seed Optional seed for reproducibility.
+#' @param ... Additional arguments passed to \code{cv.coxkl_enet}.
+#'
+#' @return
+#' An object of class \code{"bagging"}, which is a list containing:
+#' \itemize{
+#'   \item \code{best_beta} — aggregated coefficient estimate obtained via
+#'     averaging across valid replicates.
+#'   \item \code{all_betas} — matrix of dimension \code{p x B_valid}
+#'     containing coefficient vectors from each successful bootstrap fit.
+#'   \item \code{B} — total number of bootstrap replicates.
+#'   \item \code{seed} — seed used (if any).
+#'   \item \code{valid_replicates} — number of successful (non-error)
+#'     bootstrap fits used in aggregation.
+#' }
 #'
 #' @examples
 #' \dontrun{
 #' data(ExampleData_highdim)
-#' train_dat_highdim <- ExampleData_highdim$train
+#' train_dat_highdim     <- ExampleData_highdim$train
 #' beta_external_highdim <- ExampleData_highdim$beta_external
 #' etas <- generate_eta(method = "exponential", n = 10, max_eta = 100)
 #'
-#' bagging.beta_fixed <- coxkl_enet_bagging(
-#'   z = train_dat_highdim$z,
+#' bag.out <- coxkl_enet_bagging(
+#'   z     = train_dat_highdim$z,
 #'   delta = train_dat_highdim$status,
-#'   time = train_dat_highdim$time,
+#'   time  = train_dat_highdim$time,
 #'   stratum = train_dat_highdim$stratum,
-#'   beta = beta_external_highdim,
-#'   etas = etas,
-#'   B = 5,
-#'   seed = 1
+#'   beta    = beta_external_highdim,
+#'   etas    = etas,
+#'   B       = 5,
+#'   seed    = 1
 #' )
 #' }
+#'
 #' @export
 coxkl_enet_bagging <- function(z, delta, time, stratum = NULL, RS = NULL, beta = NULL,
                                etas, alpha = 1.0, B = 100, lambda = NULL, nlambda = 100,

@@ -2,7 +2,7 @@
 % Please edit documentation in R/StabSelect.R
 \name{cox_MDTL_enet.StabSelect}
 \alias{cox_MDTL_enet.StabSelect}
-\title{Stability Selection for Cox MDTL Enet Model}
+\title{Stability Selection for MDTL-Integrated Cox Elastic-Net Models}
 \usage{
 cox_MDTL_enet.StabSelect(
   z,
@@ -12,7 +12,7 @@ cox_MDTL_enet.StabSelect(
   beta,
   vcov = NULL,
   etas = NULL,
-  alpha = NULL,
+  alpha = 1,
   lambda = NULL,
   nlambda = 100,
   lambda.min.ratio = 0.1,
@@ -74,39 +74,52 @@ stratified C-index calculation but the model itself is unstratified.}
 
 \item{seed}{Optional integer. Random seed for reproducible fold assignment.}
 
-\item{B}{Integer. Number of bootstrap/subsampling replicates. Default is 50.}
+\item{B}{Integer. Number of bootstrap/subsampling replicates used for stability
+selection. Default is \code{50}.}
 
-\item{fraction_sample}{Numeric. Fraction of data to use for subsampling in each replicate. Default is 0.5.}
+\item{fraction_sample}{Numeric in \code{(0, 1]}. Fraction of the original sample
+size used in each replicate. Default is \code{0.5}.}
 
 \item{...}{Additional arguments passed to the underlying fitting function.}
 }
 \value{
-An object of class \code{StabSelect}.
+An object of class \code{"StabSelect"} containing:
+\itemize{
+\item \code{stability_path} — a numeric matrix storing selection probabilities
+for each variable–\code{lambda} pair across the \code{B} replicates.
+\item \code{lambda} — the global \code{lambda} sequence used for the underlying
+elastic-net fits.
+}
 }
 \description{
-Stability Selection for Cox MDTL Enet Model
+Performs stability selection for the Mahalanobis-distance–based transfer-learning
+Cox elastic-net model (\code{cox_MDTL_enet}) by repeatedly refitting the model on
+bootstrap or subsampled datasets and aggregating variable selection frequencies
+across replicates. This procedure yields a more robust measure of variable
+importance that is less sensitive to a single data split.
 }
 \examples{
 \dontrun{
 data(ExampleData_highdim)
-train_dat_highdim <- ExampleData_highdim$train
-beta_external_highdim <- ExampleData_highdim$beta_external
+train_dat_highdim      <- ExampleData_highdim$train
+beta_external_highdim  <- ExampleData_highdim$beta_external
 
 eta_list <- generate_eta(method = "exponential", n = 10, max_eta = 10)
 
 mdtl.StabSelect <- cox_MDTL_enet.StabSelect(
-  z = train_dat_highdim$z,
-  delta = train_dat_highdim$status,
-  time = train_dat_highdim$time,
-  stratum = train_dat_highdim$stratum,
-  beta = beta_external_highdim,
-  vcov = NULL,
-  etas = eta_list,
-  alpha = 1,
-  cv.criteria = "CIndex_pooled",
-  B = 20,
-  message = TRUE
+  z            = train_dat_highdim$z,
+  delta        = train_dat_highdim$status,
+  time         = train_dat_highdim$time,
+  stratum      = train_dat_highdim$stratum,
+  beta         = beta_external_highdim,
+  vcov         = NULL,
+  etas         = eta_list,
+  cv.criteria  = "CIndex_pooled",
+  B            = 20,
+  message      = TRUE
 )
+
+# Visualize selection with a chosen threshold
 plot(mdtl.StabSelect, threshold = 0.75)
 }
 

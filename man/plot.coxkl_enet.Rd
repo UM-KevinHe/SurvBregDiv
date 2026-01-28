@@ -5,7 +5,7 @@
 \title{Plot Validation Results for coxkl_enet Object}
 \usage{
 \method{plot}{coxkl_enet}(
-  object,
+  x,
   test_z = NULL,
   test_time = NULL,
   test_delta = NULL,
@@ -15,7 +15,7 @@
 )
 }
 \arguments{
-\item{object}{An object of class \code{"coxkl_enet"}.}
+\item{x}{An object of class \code{"coxkl_enet"}.}
 
 \item{test_z}{Matrix of test covariates.}
 

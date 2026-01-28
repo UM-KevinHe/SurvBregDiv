@@ -21,7 +21,7 @@ cv.clogitkl(
   tol = 1e-04,
   Mstop = 100,
   nfolds = 5,
-  criteria = c("loss", "AUC", "Brier"),
+  criteria = c("loss", "AUC", "CIndex", "Brier"),
   message = FALSE,
   seed = NULL,
   comb_max = 1e+07,
@@ -87,8 +87,7 @@ cv.clogitkl(
 
 - nfolds:
 
-  Number of cross-validation folds. Default `5`. Folds are constructed
-  at the stratum level using `get_fold_cc`.
+  Number of cross-validation folds. Default `5`.
 
 - criteria:
 
@@ -99,6 +98,10 @@ cv.clogitkl(
 
   - `"AUC"`: Matched-set AUC based on within-stratum comparisons (higher
     is better).
+
+  - `"CIndex"`: Concordance index in the matched-set setting,
+    implemented via the same matched-set AUC calculation as `"AUC"`
+    (higher is better).
 
   - `"Brier"`: Conditional Brier score using within-stratum softmax
     probabilities (lower is better).
@@ -130,7 +133,7 @@ cv.clogitkl(
 
 ## Value
 
-A `list` of class `"cv.coxkl"` containing:
+A `list` of class `"cv.clogitkl"` containing:
 
 - `internal_stat`:
 
@@ -181,6 +184,10 @@ The `criteria` argument controls the CV performance metric:
   counting concordant/discordant/tied pairs and aggregating across all
   strata. Higher AUC indicates better discrimination.
 
+- `"CIndex"`: Alias for `"AUC"`. In the 1:m matched case–control
+  setting, the matched-set AUC is equivalent to the conditional
+  concordance index, and is computed using the same path as `"AUC"`.
+
 - `"Brier"`: A conditional Brier score based on within-stratum softmax
   probabilities. For each stratum, a probability is assigned to each
   member via \\\hat p\_{si} = \exp(\eta\_{si}) / \sum\_{j \in S_s}
@@ -191,14 +198,6 @@ The `criteria` argument controls the CV performance metric:
 The returned object has the same structure as `"cv.coxkl"` objects from
 [`cv.coxkl_ties`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ties.md),
 facilitating downstream code reuse.
-
-## See also
-
-[`clogitkl`](https://um-kevinhe.github.io/SurvBregDiv/reference/clogitkl.md)
-for Conditional Logistic KL fitting,
-[`coxkl_ties`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ties.md)
-for the underlying Cox–KL engine, and `get_fold_cc` for stratum-level
-fold construction in matched case–control studies.
 
 ## Examples
 

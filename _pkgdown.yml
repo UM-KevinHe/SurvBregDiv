@@ -7,40 +7,44 @@ template:
 
 mathjax: true
 
+toc:
+  depth: 6
+
 navbar:
-  type: default
+  type: inverse
 
   left:
+    - text: "Home"
+      href: index.html
+
     - text: "Get started"
       href: articles/SurvBregDiv.html
 
+    - text: "Articles"
+      menu:
+        - text: "Overview"
+          href: articles/SurvBregDiv.html
+        - text: "Methods appendix"
+          href: articles/Methods.html
+
     - text: "Reference"
       href: reference/index.html
-
-    - text: "Appendix"
-      menu:
-        - text: "Methods"
-          href: articles/Methods.html
 
   right:
     - icon: fa-github fa-lg
       href: https://github.com/UM-KevinHe/SurvBregDiv
       aria-label: "GitHub repository"
 
+articles:
+  - title: "Get started"
+    contents:
+      - SurvBregDiv
+
+  - title: "Appendix"
+    contents:
+      - Methods
+
 reference:
-  - title: "Low-Dimensional Conditional Logistic Model"
-    contents:
-      - clogit
-
-  - title: "Low-Dimensional KL Divergence based Integrated Conditional Logistic Model"
-    contents:
-      - clogitkl
-      - cv.clogitkl
-
-  - title: "Low-Dimensional Cox Model"
-    contents:
-      - cox
-
   - title: "Low-Dimensional Bregman Divergence based Integrated Cox Model"
     contents:
       - coxkl
@@ -71,6 +75,16 @@ reference:
       - coxkl_enet_bagging
       - cox_MDTL_enet_bagging
 
+  - title: "Low-Dimensional KL Divergence based Integrated Conditional Logistic Model"
+    contents:
+      - clogitkl
+      - cv.clogitkl
+
+  - title: "High-Dimensional KL Divergence based Integrated Conditional Logistic Model"
+    contents:
+      - clogitkl_enet
+      - cv.clogitkl_enet
+
   - title: "Plotting Functions"
     contents:
       - cv.plot
@@ -91,3 +105,4 @@ reference:
       - ExampleData_lowdim
       - ExampleData_highdim
       - ExampleData_cc
+      - ExampleData_cc_highdim

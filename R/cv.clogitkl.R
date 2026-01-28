@@ -28,6 +28,10 @@
 #'     For each stratum, the case score is compared to the control scores,
 #'     counting concordant/discordant/tied pairs and aggregating across all
 #'     strata. Higher AUC indicates better discrimination.
+#'   \item \code{"CIndex"}: Alias for \code{"AUC"}. In the 1:m matched
+#'     case–control setting, the matched-set AUC is equivalent to the
+#'     conditional concordance index, and is computed using the same path as
+#'     \code{"AUC"}.
 #'   \item \code{"Brier"}: A conditional Brier score based on within-stratum
 #'     softmax probabilities. For each stratum, a probability is assigned to
 #'     each member via
@@ -61,14 +65,16 @@
 #'   \code{\link{clogitkl}} / \code{\link{coxkl_ties}}. Default \code{1e-4}.
 #' @param Mstop Maximum number of Newton iterations used inside
 #'   \code{\link{clogitkl}} / \code{\link{coxkl_ties}}. Default \code{100}.
-#' @param nfolds Number of cross-validation folds. Default \code{5}. Folds are
-#'   constructed at the stratum level using \code{\link{get_fold_cc}}.
+#' @param nfolds Number of cross-validation folds. Default \code{5}.
 #' @param criteria Character string specifying the CV performance criterion.
 #'   Choices are:
 #'   \itemize{
 #'     \item \code{"loss"}: Average negative conditional log-likelihood
 #'       (lower is better).
 #'     \item \code{"AUC"}: Matched-set AUC based on within-stratum comparisons
+#'       (higher is better).
+#'     \item \code{"CIndex"}: Concordance index in the matched-set setting,
+#'       implemented via the same matched-set AUC calculation as \code{"AUC"}
 #'       (higher is better).
 #'     \item \code{"Brier"}: Conditional Brier score using within-stratum
 #'       softmax probabilities (lower is better).
@@ -83,7 +89,7 @@
 #'   \code{\link{clogitkl}} / \code{\link{coxkl_ties}}. Default \code{1e7}.
 #' @param ... Additional arguments (currently ignored).
 #'
-#' @return A \code{list} of class \code{"cv.coxkl"} containing:
+#' @return A \code{list} of class \code{"cv.clogitkl"} containing:
 #' \describe{
 #'   \item{\code{internal_stat}}{A \code{data.frame} with one row per \code{eta}
 #'     and the CV metric results for the chosen \code{criteria}.}
@@ -94,12 +100,6 @@
 #'   \item{\code{criteria}}{The criterion used for selection.}
 #'   \item{\code{nfolds}}{The number of folds used.}
 #' }
-#'
-#' @seealso
-#'   \code{\link{clogitkl}} for Conditional Logistic KL fitting,
-#'   \code{\link{coxkl_ties}} for the underlying Cox–KL engine, and
-#'   \code{\link{get_fold_cc}} for stratum-level fold construction in
-#'   matched case–control studies.
 #'
 #' @examples
 #' \dontrun{
@@ -136,18 +136,18 @@ cv.clogitkl <- function(y, z, stratum,
                         tol = 1.0e-4,
                         Mstop = 100,
                         nfolds = 5,
-                        criteria = c("loss", "AUC", "Brier"),
+                        criteria = c("loss", "AUC", "CIndex", "Brier"),
                         message = FALSE,
                         seed = NULL,
                         comb_max = 1e7,
                         ...) {
-  
-  criteria <- match.arg(criteria, choices = c("loss", "AUC", "Brier"))
+
+  criteria <- match.arg(criteria, choices = c("loss", "AUC", "CIndex", "Brier"))
   method   <- match.arg(tolower(method), c("exact", "breslow"))
-  
+
   y <- as.numeric(y)
   z <- as.matrix(z)
-  
+
   if (is.null(beta)) {
     stop("The 'beta' (external coefficients) must be provided for cv.clogitkl.", call. = FALSE)
   }
@@ -157,22 +157,25 @@ cv.clogitkl <- function(y, z, stratum,
   if (is.null(etas)) {
     stop("etas must be provided.", call. = FALSE)
   }
-  etas <- sort(etas)
-  n_eta <- length(etas)
-  
+  etas   <- sort(etas)
+  n_eta  <- length(etas)
+
   if (missing(stratum) || is.null(stratum)) {
     stop("stratum must be provided for cv.clogitkl in 1:m matched settings.", call. = FALSE)
   }
   stratum <- as.factor(stratum)
-  
+
   events_per_stratum <- tapply(y, stratum, function(x) sum(x == 1))
   if (any(is.na(events_per_stratum)) || any(events_per_stratum != 1)) {
-    stop("cv.clogitkl assumes a 1:m matched setting: each stratum must contain exactly one case (sum(y==1) == 1 per stratum).",
-         call. = FALSE)
+    stop(
+      "cv.clogitkl assumes a 1:m matched setting: each stratum must contain exactly ",
+      "one case (sum(y==1) == 1 per stratum).",
+      call. = FALSE
+    )
   }
-  
+
   n <- length(y)
-  
+
   if (message) message("Fitting full conditional logistic KL model for all etas...")
   full_fit <- clogitkl(
     y       = y,
@@ -187,41 +190,44 @@ cv.clogitkl <- function(y, z, stratum,
     comb_max = comb_max
   )
   beta_full <- full_fit$beta
-  
+
   if (!is.null(seed)) set.seed(seed)
   folds <- get_fold_cc(nfolds = nfolds, delta = y, stratum = stratum)
-  
+
   if (length(folds) != n) {
     stop("get_fold_cc must return a fold assignment of length equal to length(y).", call. = FALSE)
   }
-  
+
   result_mat <- matrix(NA_real_, nrow = nfolds, ncol = n_eta)
-  if (criteria %in% c("AUC", "Brier")) {
+  if (criteria %in% c("AUC", "CIndex", "Brier")) {
     cv_all_lp <- matrix(NA_real_, nrow = n, ncol = n_eta)
   }
-  
+
   for (f in seq_len(nfolds)) {
     if (message) message(sprintf("CV fold %d/%d starts...", f, nfolds))
-    
+
     test_idx  <- which(folds == f)
     train_idx <- which(folds != f)
-    
+
     y_train       <- y[train_idx]
     z_train       <- z[train_idx, , drop = FALSE]
     stratum_train <- droplevels(stratum[train_idx])
-    
+
     y_test       <- y[test_idx]
     z_test       <- z[test_idx, , drop = FALSE]
     stratum_test <- droplevels(stratum[test_idx])
-    
+
     ev_train <- tapply(y_train, stratum_train, function(x) sum(x == 1))
     ev_test  <- tapply(y_test,  stratum_test,  function(x) sum(x == 1))
     if (any(is.na(ev_train)) || any(ev_train != 1) ||
         any(is.na(ev_test))  || any(ev_test  != 1)) {
-      stop("Each training and test fold must preserve the 1:m matched structure (exactly one case per stratum).",
-           call. = FALSE)
+      stop(
+        "Each training and test fold must preserve the 1:m matched structure ",
+        "(exactly one case per stratum).",
+        call. = FALSE
+      )
     }
-    
+
     fold_fit <- clogitkl(
       y       = y_train,
       z       = z_train,
@@ -235,37 +241,39 @@ cv.clogitkl <- function(y, z, stratum,
       comb_max = comb_max
     )
     beta_mat_fold <- fold_fit$beta
-    
+
     if (message) {
       cat("Evaluating eta sequence on validation fold:\n")
       pb <- txtProgressBar(min = 0, max = n_eta, style = 3, width = 30)
     }
-    
+
     for (i in seq_len(n_eta)) {
       beta_hat <- as.numeric(beta_mat_fold[, i])
       lp_test  <- as.numeric(z_test %*% beta_hat)
-      
+
       if (criteria == "loss") {
         loglik_test <- cc_loglik(y = y_test, lp = lp_test, stratum = stratum_test)
         result_mat[f, i] <- -loglik_test / length(y_test)
-      } else if (criteria %in% c("AUC", "Brier")) {
+      } else if (criteria %in% c("AUC", "CIndex", "Brier")) {
         cv_all_lp[test_idx, i] <- lp_test
       }
-      
+
       if (message) setTxtProgressBar(pb, i)
     }
-    
+
     if (message) close(pb)
   }
-  
+
   if (criteria == "loss") {
     result_vec <- colMeans(result_mat, na.rm = TRUE)
-  } else if (criteria == "AUC") {
+
+  } else if (criteria %in% c("AUC", "CIndex")) {
     result_vec <- apply(
       cv_all_lp,
       2,
       function(lp) cc_auc(y = y, lp = lp, stratum = stratum)
     )
+
   } else if (criteria == "Brier") {
     result_vec <- apply(
       cv_all_lp,
@@ -273,26 +281,32 @@ cv.clogitkl <- function(y, z, stratum,
       function(lp) cc_brier(y = y, lp = lp, stratum = stratum)
     )
   }
-  
+
   results <- data.frame(eta = etas)
-  
+
   if (criteria == "loss") {
     results$loss <- result_vec
     best_eta_idx <- which.min(results$loss)
+
   } else if (criteria == "AUC") {
     results$AUC <- result_vec
     best_eta_idx <- which.max(results$AUC)
+
+  } else if (criteria == "CIndex") {
+    results$CIndex <- result_vec
+    best_eta_idx <- which.max(results$CIndex)
+
   } else if (criteria == "Brier") {
     results$Brier <- result_vec
     best_eta_idx <- which.min(results$Brier)
   }
-  
+
   best_res <- list(
     best_eta  = etas[best_eta_idx],
     best_beta = beta_full[, best_eta_idx],
     criteria  = criteria
   )
-  
+
   structure(
     list(
       internal_stat = results,
@@ -301,6 +315,7 @@ cv.clogitkl <- function(y, z, stratum,
       criteria      = criteria,
       nfolds        = nfolds
     ),
-    class = "cv.coxkl"
+    class = "cv.clogitkl"
   )
 }
+

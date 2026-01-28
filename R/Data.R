@@ -49,7 +49,7 @@
 #'
 #' @examples
 #' data(ExampleData_highdim)
-#' 
+#'
 #' head(ExampleData_highdim$train$z)
 #' table(ExampleData_highdim$train$status)
 #' summary(ExampleData_highdim$train$time)
@@ -57,7 +57,7 @@
 #' head(ExampleData_highdim$test$z)
 #' table(ExampleData_highdim$test$status)
 #' summary(ExampleData_highdim$test$time)
-#' 
+#'
 "ExampleData_highdim"
 
 
@@ -116,7 +116,7 @@
 #'
 #' @examples
 #' data(ExampleData_lowdim)
-#' 
+#'
 #' head(ExampleData_lowdim$train$z)
 #' table(ExampleData_lowdim$train$status)
 #' summary(ExampleData_lowdim$train$time)
@@ -124,7 +124,7 @@
 #' head(ExampleData_lowdim$test$z)
 #' table(ExampleData_lowdim$test$status)
 #' summary(ExampleData_lowdim$test$time)
-#' 
+#'
 "ExampleData_lowdim"
 
 
@@ -185,7 +185,30 @@
 
 
 
-
+#' Example high-dimensional matched case-control data
+#'
+#' A simulated 1:5 matched case-control dataset with 20 covariates,
+#' where 10 covariates are truly non-zero. The data are split into
+#' training and test sets and include both the true underlying coefficients
+#' and an externally supplied coefficient vector for KL-based integration.
+#'
+#' @name ExampleData_cc_highdim
+#' @docType data
+#' @usage data(ExampleData_cc_highdim)
+#'
+#' @format A list containing:
+#' \describe{
+#'   \item{train}{List with elements \code{y}, \code{z}, and \code{stratum}.}
+#'   \item{test}{Same structure as \code{train}.}
+#'   \item{beta_true}{Numeric vector (length 50) of true coefficients.}
+#'   \item{beta_external}{Numeric vector (length 50) representing external coefficients.}
+#' }
+#'
+#' @examples
+#' data(ExampleData_cc_highdim)
+#' table(ExampleData_cc_highdim$train$y)
+#' head(ExampleData_cc_highdim$train$z)
+"ExampleData_cc_highdim"
 
 
 

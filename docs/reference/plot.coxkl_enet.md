@@ -8,7 +8,7 @@ Plots the validation performance against the penalty parameter `lambda`
 ``` r
 # S3 method for class 'coxkl_enet'
 plot(
-  object,
+  x,
   test_z = NULL,
   test_time = NULL,
   test_delta = NULL,
@@ -20,7 +20,7 @@ plot(
 
 ## Arguments
 
-- object:
+- x:
 
   An object of class `"coxkl_enet"`.
 

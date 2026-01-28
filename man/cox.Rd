@@ -49,14 +49,15 @@ data(ExampleData_lowdim)
 train_dat_lowdim <- ExampleData_lowdim$train
 train_dat_lowdim$time <- round(train_dat_lowdim$time, 2)  #make ties
 
-fit <- cox(z = train_dat_lowdim$z, 
-           delta = train_dat_lowdim$status, 
+fit <- cox(z = train_dat_lowdim$z,
+           delta = train_dat_lowdim$status,
            time = train_dat_lowdim$time)
 
 # Breslow method for tied data
-fit_Breslow <- cox(z = train_dat_lowdim$z, 
-                   delta = train_dat_lowdim$status, 
+fit_Breslow <- cox(z = train_dat_lowdim$z,
+                   delta = train_dat_lowdim$status,
                    time = train_dat_lowdim$time,
                    ties = "breslow")
 }
 }
+\keyword{internal}

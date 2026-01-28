@@ -5,7 +5,7 @@
 \title{Plot Validation Results for Cox_MDTL Object}
 \usage{
 \method{plot}{cox_MDTL}(
-  object,
+  x,
   test_z = NULL,
   test_time = NULL,
   test_delta = NULL,
@@ -15,7 +15,7 @@
 )
 }
 \arguments{
-\item{object}{An object of class \code{"Cox_MDTL"}.}
+\item{x}{An object of class \code{"Cox_MDTL"}.}
 
 \item{test_z}{Matrix of test covariates.}
 

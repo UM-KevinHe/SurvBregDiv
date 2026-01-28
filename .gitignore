@@ -12,3 +12,5 @@ src/*.so
 
 *.dll
 *.dylib
+/doc/
+/Meta/

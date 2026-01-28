@@ -5,7 +5,7 @@
 \title{Plot Validation Results for coxkl_ridge Object}
 \usage{
 \method{plot}{coxkl_ridge}(
-  object,
+  x,
   test_z = NULL,
   test_time = NULL,
   test_delta = NULL,
@@ -15,7 +15,7 @@
 )
 }
 \arguments{
-\item{object}{An object of class \code{"coxkl_ridge"}.}
+\item{x}{An object of class \code{"coxkl_ridge"}.}
 
 \item{test_z}{Matrix of test covariates.}
 

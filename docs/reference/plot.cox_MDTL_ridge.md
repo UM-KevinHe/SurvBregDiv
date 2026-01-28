@@ -8,7 +8,7 @@ estimates.
 ``` r
 # S3 method for class 'cox_MDTL_ridge'
 plot(
-  object,
+  x,
   test_z = NULL,
   test_time = NULL,
   test_delta = NULL,
@@ -20,7 +20,7 @@ plot(
 
 ## Arguments
 
-- object:
+- x:
 
   An object of class `"cox_MDTL_ridge"`.
 

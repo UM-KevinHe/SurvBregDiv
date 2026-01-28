@@ -4,7 +4,7 @@
 #' Plots the validation performance (Loss or C-Index) against the tuning parameter \code{eta}.
 #' Compares the "Integrated" estimator (solid line) against the "Internal" baseline (dotted line, eta=0).
 #'
-#' @param object An object of class \code{"coxkl"}.
+#' @param x An object of class \code{"coxkl"}.
 #' @param test_z Matrix of test covariates. If NULL, training data is used.
 #' @param test_time Vector of test survival times.
 #' @param test_delta Vector of test status indicators.
@@ -41,18 +41,20 @@
 #'            test_stratum = test_dat_lowdim$stratum,
 #'            criteria = "CIndex")
 #' }
-plot.coxkl <- function(object, test_z = NULL, test_time = NULL, test_delta = NULL,
+plot.coxkl <- function(x, test_z = NULL, test_time = NULL, test_delta = NULL,
                        test_stratum = NULL, criteria = c("loss", "CIndex"), ...) {
+  object <- x
+
   criteria <- match.arg(criteria)
   if (!inherits(object, "coxkl")) stop("'object' must be of class 'coxkl'.", call. = FALSE)
-  
+
   etas <- object$eta
   beta_mat <- object$beta
   z_train <- object$data$z
   time_train <- object$data$time
   delta_train <- object$data$delta
   stratum_train <- object$data$stratum
-  
+
   using_train <- is.null(test_z) && is.null(test_time) && is.null(test_delta) && is.null(test_stratum)
   if (using_train) {
     test_z <- z_train
@@ -60,9 +62,13 @@ plot.coxkl <- function(object, test_z = NULL, test_time = NULL, test_delta = NUL
     test_delta <- delta_train
     test_stratum <- stratum_train
   }
-  
+
   n_eval <- nrow(as.matrix(test_z))
-  
+
+  if (!using_train && is.null(test_time)) {
+    test_time <- rep(1, n_eval)
+  }
+
   if (criteria == "loss") {
     if (using_train) {
       metrics <- (-2 * object$likelihood) / n_eval
@@ -91,26 +97,26 @@ plot.coxkl <- function(object, test_z = NULL, test_time = NULL, test_delta = NUL
       )
     )
   }
-  
+
   idx0 <- which.min(abs(etas - 0))
   x0 <- etas[idx0]
   y0 <- as.numeric(metrics[idx0])
   xmax <- max(etas, na.rm = TRUE)
-  
+
   df <- data.frame(eta = etas, metric = as.numeric(metrics))
   ylab <- if (criteria == "CIndex") "C Index" else "Loss"
-  
+
   lbl_integrated <- "Integrated"
   lbl_internal <- "Internal"
   cols <- setNames(c("#7570B3", "#1B9E77"), c(lbl_integrated, lbl_internal))
   ltypes <- setNames(c("solid", "dotted"), c(lbl_integrated, lbl_internal))
-  
+
   p <- ggplot(df, aes(x = .data$eta, y = .data$metric)) +
     geom_line(aes(color = lbl_integrated, linetype = lbl_integrated), linewidth = 1) +
     geom_point(color = cols[lbl_integrated], size = 2) +
     geom_segment(
       data = data.frame(x0 = x0, y0 = y0, xmax = xmax),
-      aes(x = .data$x0, xend = .data$xmax, y = .data$y0, yend = .data$y0, 
+      aes(x = .data$x0, xend = .data$xmax, y = .data$y0, yend = .data$y0,
           color = lbl_internal, linetype = lbl_internal),
       inherit.aes = FALSE, linewidth = 1
     ) +
@@ -127,7 +133,7 @@ plot.coxkl <- function(object, test_z = NULL, test_time = NULL, test_delta = NUL
       ylim = c(min(c(df$metric, y0), na.rm = TRUE) * 0.995,
                max(c(df$metric, y0), na.rm = TRUE) * 1.005)
     )
-  
+
   return(p)
 }
 
@@ -137,7 +143,7 @@ plot.coxkl <- function(object, test_z = NULL, test_time = NULL, test_delta = NUL
 #' Plots the validation performance against the penalty parameter \code{lambda} (on log scale).
 #' The optimal lambda is marked with a dashed orange line.
 #'
-#' @param object An object of class \code{"coxkl_ridge"}.
+#' @param x An object of class \code{"coxkl_ridge"}.
 #' @param test_z Matrix of test covariates.
 #' @param test_time Vector of test survival times.
 #' @param test_delta Vector of test status indicators.
@@ -172,18 +178,20 @@ plot.coxkl <- function(object, test_z = NULL, test_time = NULL, test_delta = NUL
 #'                  test_stratum = test_dat_highdim$stratum,
 #'                  criteria = "CIndex")
 #' }
-plot.coxkl_ridge <- function(object, test_z = NULL, test_time = NULL, test_delta = NULL,
+plot.coxkl_ridge <- function(x, test_z = NULL, test_time = NULL, test_delta = NULL,
                              test_stratum = NULL, criteria = c("loss", "CIndex"), ...) {
+  object <- x
+
   criteria <- match.arg(criteria)
   if (!inherits(object, "coxkl_ridge")) stop("'object' must be of class 'coxkl_ridge'.", call. = FALSE)
-  
-  lambdas <- object$lambda
+
+ lambdas <- object$lambda
   beta_mat <- object$beta
   z_train <- object$data$z
   time_train <- object$data$time
   delta_train <- object$data$delta
   stratum_train <- object$data$stratum
-  
+
   using_train <- is.null(test_z) && is.null(test_time) && is.null(test_delta) && is.null(test_stratum)
   if (using_train) {
     test_z <- z_train
@@ -191,9 +199,13 @@ plot.coxkl_ridge <- function(object, test_z = NULL, test_time = NULL, test_delta
     test_delta <- delta_train
     test_stratum <- stratum_train
   }
-  
+
   n_eval <- nrow(as.matrix(test_z))
-  
+
+  if (!using_train && is.null(test_time)) {
+    test_time <- rep(1, n_eval)
+  }
+
   if (criteria == "loss") {
     if (using_train) {
       metrics <- (-2 * object$likelihood) / n_eval
@@ -224,15 +236,15 @@ plot.coxkl_ridge <- function(object, test_z = NULL, test_time = NULL, test_delta
     )
     opt_idx <- which.max(metrics)
   }
-  
+
   df <- data.frame(lambda = lambdas, metric = as.numeric(metrics))
   df <- df[order(df$lambda, decreasing = TRUE), ]
-  
+
   opt_lambda <- lambdas[opt_idx]
   ylow <- min(df$metric, na.rm = TRUE) * 0.995
   yhigh <- max(df$metric, na.rm = TRUE) * 1.005
   ylab <- if (criteria == "CIndex") "C Index" else "Loss"
-  
+
   ggplot(df, aes(x = .data$lambda, y = .data$metric)) +
     geom_line(linewidth = 1, color = "#7570B3") +
     geom_point(size = 2, color = "#7570B3") +
@@ -253,7 +265,7 @@ plot.coxkl_ridge <- function(object, test_z = NULL, test_time = NULL, test_delta
 #' Plots the validation performance against the penalty parameter \code{lambda} (on log scale).
 #' The optimal lambda is marked with a dashed orange line.
 #'
-#' @param object An object of class \code{"coxkl_enet"}.
+#' @param x An object of class \code{"coxkl_enet"}.
 #' @param test_z Matrix of test covariates.
 #' @param test_time Vector of test survival times.
 #' @param test_delta Vector of test status indicators.
@@ -288,18 +300,20 @@ plot.coxkl_ridge <- function(object, test_z = NULL, test_time = NULL, test_delta
 #'                 test_stratum = test_dat_highdim$stratum,
 #'                 criteria = "CIndex")
 #' }
-plot.coxkl_enet <- function(object, test_z = NULL, test_time = NULL, test_delta = NULL,
+plot.coxkl_enet <- function(x, test_z = NULL, test_time = NULL, test_delta = NULL,
                             test_stratum = NULL, criteria = c("loss", "CIndex"), ...) {
+  object <- x
+
   criteria <- match.arg(criteria)
   if (!inherits(object, "coxkl_enet")) stop("'object' must be of class 'coxkl_enet'.", call. = FALSE)
-  
+
   lambdas <- object$lambda
   beta_mat <- object$beta
   z_train <- object$data$z
   time_train <- object$data$time
   delta_train <- object$data$delta
   stratum_train <- object$data$stratum
-  
+
   using_train <- is.null(test_z) && is.null(test_time) && is.null(test_delta) && is.null(test_stratum)
   if (using_train) {
     test_z <- z_train
@@ -307,9 +321,14 @@ plot.coxkl_enet <- function(object, test_z = NULL, test_time = NULL, test_delta 
     test_delta <- delta_train
     test_stratum <- stratum_train
   }
-  
+
   n_eval <- nrow(as.matrix(test_z))
-  
+
+
+  if (!using_train && is.null(test_time)) {
+    test_time <- rep(1, n_eval)
+  }
+
   if (criteria == "loss") {
     if (using_train) {
       metrics <- (-2 * object$likelihood) / n_eval
@@ -340,15 +359,15 @@ plot.coxkl_enet <- function(object, test_z = NULL, test_time = NULL, test_delta 
     )
     opt_idx <- which.max(metrics)
   }
-  
+
   df <- data.frame(lambda = lambdas, metric = as.numeric(metrics))
   df <- df[order(df$lambda, decreasing = TRUE), ]
-  
+
   opt_lambda <- lambdas[opt_idx]
   ylow <- min(df$metric, na.rm = TRUE) * 0.995
   yhigh <- max(df$metric, na.rm = TRUE) * 1.005
   ylab <- if (criteria == "CIndex") "C Index" else "Loss"
-  
+
   ggplot(df, aes(x = .data$lambda, y = .data$metric)) +
     geom_line(linewidth = 1, color = "#7570B3") +
     geom_point(size = 2, color = "#7570B3") +
@@ -369,7 +388,7 @@ plot.coxkl_enet <- function(object, test_z = NULL, test_time = NULL, test_delta 
 #' Plots the validation performance against \code{eta} for MDTL estimates.
 #' Compares the "Integrated" estimator (solid line) against the "Internal" baseline (dotted line, eta=0).
 #'
-#' @param object An object of class \code{"Cox_MDTL"}.
+#' @param x An object of class \code{"Cox_MDTL"}.
 #' @param test_z Matrix of test covariates.
 #' @param test_time Vector of test survival times.
 #' @param test_delta Vector of test status indicators.
@@ -406,18 +425,20 @@ plot.coxkl_enet <- function(object, test_z = NULL, test_time = NULL, test_delta 
 #'               test_stratum = test_dat_lowdim$stratum,
 #'               criteria = "CIndex")
 #' }
-plot.cox_MDTL <- function(object, test_z = NULL, test_time = NULL, test_delta = NULL,
+plot.cox_MDTL <- function(x, test_z = NULL, test_time = NULL, test_delta = NULL,
                           test_stratum = NULL, criteria = c("loss", "CIndex"), ...) {
+  object <- x
+
   criteria <- match.arg(criteria)
   if (!inherits(object, "cox_MDTL")) stop("'object' must be of class 'cox_MDTL'.", call. = FALSE)
-  
+
   etas <- object$eta
   beta_mat <- object$beta
   z_train <- object$data$z
   time_train <- object$data$time
   delta_train <- object$data$delta
   stratum_train <- object$data$stratum
-  
+
   using_train <- is.null(test_z) && is.null(test_time) && is.null(test_delta) && is.null(test_stratum)
   if (using_train) {
     test_z <- z_train
@@ -425,9 +446,14 @@ plot.cox_MDTL <- function(object, test_z = NULL, test_time = NULL, test_delta = 
     test_delta <- delta_train
     test_stratum <- stratum_train
   }
-  
+
   n_eval <- nrow(as.matrix(test_z))
-  
+
+
+  if (!using_train && is.null(test_time)) {
+    test_time <- rep(1, n_eval)
+  }
+
   if (criteria == "loss") {
     if (using_train) {
       metrics <- (-2 * object$likelihood) / n_eval
@@ -456,26 +482,26 @@ plot.cox_MDTL <- function(object, test_z = NULL, test_time = NULL, test_delta = 
       )
     )
   }
-  
+
   idx0 <- which.min(abs(etas - 0))
   x0 <- etas[idx0]
   y0 <- as.numeric(metrics[idx0])
   xmax <- max(etas, na.rm = TRUE)
-  
+
   df <- data.frame(eta = etas, metric = as.numeric(metrics))
   ylab <- if (criteria == "CIndex") "C Index" else "Loss"
-  
+
   lbl_integrated <- "Integrated"
   lbl_internal <- "Internal"
   cols <- setNames(c("#7570B3", "#1B9E77"), c(lbl_integrated, lbl_internal))
   ltypes <- setNames(c("solid", "dotted"), c(lbl_integrated, lbl_internal))
-  
+
   p <- ggplot(df, aes(x = .data$eta, y = .data$metric)) +
     geom_line(aes(color = lbl_integrated, linetype = lbl_integrated), linewidth = 1) +
     geom_point(color = cols[lbl_integrated], size = 2) +
     geom_segment(
       data = data.frame(x0 = x0, y0 = y0, xmax = xmax),
-      aes(x = .data$x0, xend = .data$xmax, y = .data$y0, yend = .data$y0, 
+      aes(x = .data$x0, xend = .data$xmax, y = .data$y0, yend = .data$y0,
           color = lbl_internal, linetype = lbl_internal),
       inherit.aes = FALSE, linewidth = 1
     ) +
@@ -492,7 +518,7 @@ plot.cox_MDTL <- function(object, test_z = NULL, test_time = NULL, test_delta = 
       ylim = c(min(c(df$metric, y0), na.rm = TRUE) * 0.995,
                max(c(df$metric, y0), na.rm = TRUE) * 1.005)
     )
-  
+
   return(p)
 }
 
@@ -501,7 +527,7 @@ plot.cox_MDTL <- function(object, test_z = NULL, test_time = NULL, test_delta = 
 #' @description
 #' Plots the validation performance against \code{lambda} for MDTL ridge estimates.
 #'
-#' @param object An object of class \code{"cox_MDTL_ridge"}.
+#' @param x An object of class \code{"cox_MDTL_ridge"}.
 #' @param test_z Matrix of test covariates.
 #' @param test_time Vector of test survival times.
 #' @param test_delta Vector of test status indicators.
@@ -535,18 +561,20 @@ plot.cox_MDTL <- function(object, test_z = NULL, test_time = NULL, test_delta = 
 #'                     test_delta = test_dat_highdim$status,
 #'                     criteria = "CIndex")
 #' }
-plot.cox_MDTL_ridge <- function(object, test_z = NULL, test_time = NULL, test_delta = NULL,
+plot.cox_MDTL_ridge <- function(x, test_z = NULL, test_time = NULL, test_delta = NULL,
                                 test_stratum = NULL, criteria = c("loss", "CIndex"), ...) {
+  object <- x
+
   criteria <- match.arg(criteria)
   if (!inherits(object, "cox_MDTL_ridge")) stop("'object' must be of class 'cox_MDTL_ridge'.", call. = FALSE)
-  
+
   lambdas <- object$lambda
   beta_mat <- object$beta
   z_train <- object$data$z
   time_train <- object$data$time
   delta_train <- object$data$delta
   stratum_train <- object$data$stratum
-  
+
   using_train <- is.null(test_z) && is.null(test_time) && is.null(test_delta) && is.null(test_stratum)
   if (using_train) {
     test_z <- z_train
@@ -554,9 +582,14 @@ plot.cox_MDTL_ridge <- function(object, test_z = NULL, test_time = NULL, test_de
     test_delta <- delta_train
     test_stratum <- stratum_train
   }
-  
+
   n_eval <- nrow(as.matrix(test_z))
-  
+
+
+  if (!using_train && is.null(test_time)) {
+    test_time <- rep(1, n_eval)
+  }
+
   if (criteria == "loss") {
     if (using_train) {
       metrics <- (-2 * object$likelihood) / n_eval
@@ -587,15 +620,15 @@ plot.cox_MDTL_ridge <- function(object, test_z = NULL, test_time = NULL, test_de
     )
     opt_idx <- which.max(metrics)
   }
-  
+
   df <- data.frame(lambda = lambdas, metric = as.numeric(metrics))
   df <- df[order(df$lambda, decreasing = TRUE), ]
-  
+
   opt_lambda <- lambdas[opt_idx]
   ylow <- min(df$metric, na.rm = TRUE) * 0.995
   yhigh <- max(df$metric, na.rm = TRUE) * 1.005
   ylab <- if (criteria == "CIndex") "C Index" else "Loss"
-  
+
   ggplot(df, aes(x = .data$lambda, y = .data$metric)) +
     geom_line(linewidth = 1, color = "#7570B3") +
     geom_point(size = 2, color = "#7570B3") +
@@ -615,7 +648,7 @@ plot.cox_MDTL_ridge <- function(object, test_z = NULL, test_time = NULL, test_de
 #' @description
 #' Plots the validation performance against \code{lambda} for MDTL elastic net estimates.
 #'
-#' @param object An object of class \code{"cox_MDTL_enet"}.
+#' @param x An object of class \code{"cox_MDTL_enet"}.
 #' @param test_z Matrix of test covariates.
 #' @param test_time Vector of test survival times.
 #' @param test_delta Vector of test status indicators.
@@ -650,18 +683,20 @@ plot.cox_MDTL_ridge <- function(object, test_z = NULL, test_time = NULL, test_de
 #'                    test_stratum = test_dat_highdim$stratum,
 #'                    criteria = "CIndex")
 #' }
-plot.cox_MDTL_enet <- function(object, test_z = NULL, test_time = NULL, test_delta = NULL,
+plot.cox_MDTL_enet <- function(x, test_z = NULL, test_time = NULL, test_delta = NULL,
                                test_stratum = NULL, criteria = c("loss", "CIndex"), ...) {
+  object <- x
+
   criteria <- match.arg(criteria)
   if (!inherits(object, "cox_MDTL_enet")) stop("'object' must be of class 'cox_MDTL_enet'.", call. = FALSE)
-  
+
   lambdas <- object$lambda
   beta_mat <- object$beta
   z_train <- object$data$z
   time_train <- object$data$time
   delta_train <- object$data$delta
   stratum_train <- object$data$stratum
-  
+
   using_train <- is.null(test_z) && is.null(test_time) && is.null(test_delta) && is.null(test_stratum)
   if (using_train) {
     test_z <- z_train
@@ -669,9 +704,14 @@ plot.cox_MDTL_enet <- function(object, test_z = NULL, test_time = NULL, test_del
     test_delta <- delta_train
     test_stratum <- stratum_train
   }
-  
+
   n_eval <- nrow(as.matrix(test_z))
-  
+
+
+  if (!using_train && is.null(test_time)) {
+    test_time <- rep(1, n_eval)
+  }
+
   if (criteria == "loss") {
     if (using_train) {
       metrics <- (-2 * object$likelihood) / n_eval
@@ -702,15 +742,15 @@ plot.cox_MDTL_enet <- function(object, test_z = NULL, test_time = NULL, test_del
     )
     opt_idx <- which.max(metrics)
   }
-  
+
   df <- data.frame(lambda = lambdas, metric = as.numeric(metrics))
   df <- df[order(df$lambda, decreasing = TRUE), ]
-  
+
   opt_lambda <- lambdas[opt_idx]
   ylow <- min(df$metric, na.rm = TRUE) * 0.995
   yhigh <- max(df$metric, na.rm = TRUE) * 1.005
   ylab <- if (criteria == "CIndex") "C Index" else "Loss"
-  
+
   ggplot(df, aes(x = .data$lambda, y = .data$metric)) +
     geom_line(linewidth = 1, color = "#7570B3") +
     geom_point(size = 2, color = "#7570B3") +

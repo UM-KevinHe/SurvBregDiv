@@ -1,6 +1,10 @@
-# Stability Selection for Cox-KL Enet Model
+# Stability Selection for KL-Integrated Cox Elastic-Net Models
 
-Stability Selection for Cox-KL Enet Model
+Performs stability selection for the KL-integrated Cox elastic-net model
+by repeatedly refitting the model on bootstrap or subsampled datasets
+and aggregating variable selection frequencies across replicates. This
+procedure provides a robust measure of variable importance that is less
+sensitive to a single split of the data.
 
 ## Usage
 
@@ -117,12 +121,14 @@ coxkl_enet.StabSelect(
 
 - B:
 
-  Integer. Number of bootstrap/subsampling replicates. Default is 50.
+  Integer. Number of bootstrap/subsampling replicates used for stability
+  selection. Default is `50`.
 
 - fraction_sample:
 
-  Numeric. Fraction of data to use for subsampling in each replicate.
-  Default is 0.5.
+  Numeric in `(0, 1]`. Fraction of the original sample size used in each
+  replicate (without replacement if subsampling is used). Default is
+  `0.5`.
 
 - ...:
 
@@ -131,23 +137,42 @@ coxkl_enet.StabSelect(
 
 ## Value
 
-An object of class `StabSelect`, which is a list containing:
+An object of class `"StabSelect"`, which is a list containing:
 
 - stability_path:
 
-  A matrix (n_vars x n_lambda) of selection probabilities.
+  A numeric matrix of dimension `n_vars x n_lambda` giving, for each
+  variable (rows) and each value of `lambda` (columns), the empirical
+  selection probability across the `B` replicates.
 
 - lambda:
 
-  The global lambda sequence used.
+  Numeric vector giving the global `lambda` sequence used for the
+  underlying elastic-net fits.
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
 data(ExampleData_highdim)
+train_dat_highdim      <- ExampleData_highdim$train
+beta_external_highdim  <- ExampleData_highdim$beta_external
 
-# Plot with different thresholds without re-running
+eta_list <- generate_eta(method = "exponential", n = 10, max_eta = 50)
+
+coxkl.StabSelect <- coxkl_enet.StabSelect(
+  z            = train_dat_highdim$z,
+  delta        = train_dat_highdim$status,
+  time         = train_dat_highdim$time,
+  stratum      = train_dat_highdim$stratum,
+  beta         = beta_external_highdim,
+  etas         = eta_list,
+  cv.criteria  = "CIndex_pooled",
+  B            = 20,
+  message      = TRUE
+)
+
+# Plot with different thresholds without re-running stability selection
 plot(coxkl.StabSelect, threshold = 0.6)
 plot(coxkl.StabSelect, threshold = 0.8)
 } # }

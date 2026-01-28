@@ -2,7 +2,7 @@
 % Please edit documentation in R/cox_MDTL_enet_bagging.R
 \name{cox_MDTL_enet_bagging}
 \alias{cox_MDTL_enet_bagging}
-\title{Bagging for cv.cox_MDTL_enet}
+\title{Bagging for MDTL-Integrated Cox Elastic-Net Models}
 \usage{
 cox_MDTL_enet_bagging(
   z,
@@ -26,78 +26,93 @@ cox_MDTL_enet_bagging(
 )
 }
 \arguments{
-\item{z}{Matrix of predictors (n x p).}
+\item{z}{Matrix of predictors of dimension \code{n x p}.}
 
-\item{delta}{Vector of event indicators.}
+\item{delta}{Event indicator vector.}
 
-\item{time}{Vector of survival times.}
+\item{time}{Survival time vector.}
 
-\item{stratum}{Vector indicating the stratum.}
+\item{stratum}{Optional stratum indicator vector for stratified Cox modeling.}
 
-\item{beta}{Vector of fixed external coefficients (length p). This is prior information and is \strong{not} resampled.}
+\item{beta}{External coefficient vector of length \code{p}. Treated as fixed
+prior information and not resampled across bootstrap replicates.}
 
-\item{vcov}{Optional weighting matrix (p x p).}
+\item{vcov}{Optional weighting matrix (\code{p x p}) used in the Mahalanobis
+distance formulation.}
 
-\item{etas}{Sequence of eta values (transfer learning weights) to tune.}
+\item{etas}{Vector of \code{eta} values for transfer-learning shrinkage.}
 
-\item{alpha}{The Elastic Net mixing parameter, with \eqn{0 \le \alpha \le 1}.
-\code{alpha=1} is the lasso penalty, and \code{alpha=0} the ridge penalty. Default is 1.0.}
+\item{alpha}{Elastic-net mixing parameter between \code{0} and \code{1}.
+\code{alpha = 1} corresponds to lasso; \code{alpha = 0} to ridge. Default is \code{1.0}.}
 
-\item{B}{Integer. Number of bootstrap replicates. Default is 100.}
+\item{B}{Number of bootstrap replicates. Default is \code{100}.}
 
-\item{lambda}{Optional user-supplied lambda sequence.}
+\item{lambda}{Optional user-specified \code{lambda} sequence.}
 
-\item{nlambda}{Number of lambda values.}
+\item{nlambda}{Number of \code{lambda} values to generate if \code{lambda} is not supplied.}
 
-\item{lambda.min.ratio}{Ratio of min/max lambda.}
+\item{lambda.min.ratio}{Ratio of the smallest to the largest \code{lambda} when generating a sequence.}
 
-\item{nfolds}{Number of CV folds for the inner cross-validation.}
+\item{nfolds}{Number of folds for inner cross-validation via \code{cv.cox_MDTL_enet}.}
 
-\item{cv.criteria}{Cross-validation criteria.}
+\item{cv.criteria}{Cross-validation criterion used for selecting the optimal
+\code{(eta, lambda)} pair.}
 
-\item{c_index_stratum}{Stratum vector for C-index calculation (if different from model stratum).}
+\item{c_index_stratum}{Optional stratum assignment for stratified C-index
+evaluation (may differ from model stratification).}
 
-\item{message}{Logical. If TRUE, shows a progress bar.}
+\item{message}{Logical indicating whether to print progress. Default is \code{FALSE}.}
 
-\item{seed}{Integer. Seed for reproducibility.}
+\item{seed}{Optional integer seed for reproducibility.}
 
 \item{...}{Additional arguments passed to \code{cv.cox_MDTL_enet}.}
 }
 \value{
 An object of class \code{"cox_MDTL_bagging"} containing:
 \itemize{
-\item \code{best_beta}: The averaged coefficient vector across all valid bootstrap replicates.
-\item \code{all_betas}: A matrix (p x B) of coefficients from each bootstrap replicate.
-\item \code{B}: Number of requested replicates.
-\item \code{valid_replicates}: Number of replicates that successfully converged.
-\item \code{seed}: The seed used.
+\item \code{best_beta} — aggregated coefficient estimate obtained by averaging
+across valid bootstrap replicates.
+\item \code{all_betas} — matrix of dimension \code{p x B_valid} containing
+coefficient vectors from each successful bootstrap fit.
+\item \code{B} — total number of requested bootstrap replicates.
+\item \code{valid_replicates} — number of successful (non-error) fits contributing to aggregation.
+\item \code{seed} — seed used for reproducibility (if supplied).
 }
 }
 \description{
-Implements bootstrap aggregation (bagging) for the \code{cv.cox_MDTL_enet} model.
-It generates \code{B} bootstrap samples from the internal data, fits the Cross-Validated
-Cox MDTL Elastic Net model on each sample, and aggregates the resulting coefficients.
+Performs bootstrap aggregation (bagging) for the Mahalanobis-distance–based
+transfer-learning Cox elastic-net model (\code{cv.cox_MDTL_enet}) by repeatedly
+refitting the model on bootstrap resamples of the internal dataset and
+averaging the resulting fitted coefficient vectors. This procedure reduces
+sampling variability and improves robustness relative to a single data split.
+}
+\details{
+External information is supplied via a fixed coefficient vector (\code{beta})
+and, optionally, a weighting matrix (\code{vcov}). Both represent external
+prior information and are \strong{not} resampled across replicates.
 }
 \examples{
 \dontrun{
 data(ExampleData_highdim)
-train_dat_highdim <- ExampleData_highdim$train
+train_dat_highdim     <- ExampleData_highdim$train
 beta_external_highdim <- ExampleData_highdim$beta_external
 
 etas <- generate_eta(method = "exponential", n = 10, max_eta = 10)
-bagging_res <- cox_MDTL_enet_bagging(
-  z = train_dat_highdim$z,
-  delta = train_dat_highdim$status,
-  time = train_dat_highdim$time,
-  stratum = train_dat_highdim$stratum,
-  beta = beta_external_highdim,
-  vcov = NULL,
-  etas = etas,
-  alpha = 0.5, # Elastic Net mixing
-  B = 5,
-  cv.criteria = "CIndex_pooled",
-  message = TRUE,
-  seed = 123
+
+bag.out <- cox_MDTL_enet_bagging(
+  z            = train_dat_highdim$z,
+  delta        = train_dat_highdim$status,
+  time         = train_dat_highdim$time,
+  stratum      = train_dat_highdim$stratum,
+  beta         = beta_external_highdim,
+  vcov         = NULL,
+  etas         = etas,
+  alpha        = 0.5,
+  B            = 5,
+  cv.criteria  = "CIndex_pooled",
+  message      = TRUE,
+  seed         = 123
 )
 }
+
 }

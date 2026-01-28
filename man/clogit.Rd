@@ -72,3 +72,4 @@ fit_breslow <- clogit(y = y, z = z, stratum = sets, method = "breslow")
 \seealso{
 \code{\link{cox}} for the underlying Cox PH estimation function.
 }
+\keyword{internal}
