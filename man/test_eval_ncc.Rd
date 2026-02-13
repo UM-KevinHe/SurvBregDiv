@@ -2,9 +2,15 @@
 % Please edit documentation in R/test_eval_ncc.R
 \name{test_eval_ncc}
 \alias{test_eval_ncc}
-\title{Evaluate NCC Model: Loss and C-Index}
+\title{Evaluate NCC Model: Loss, C-Index, and Brier Score}
 \usage{
-test_eval_ncc(z_ncc, case, set_id, betahat, criteria = c("loss", "CIndex"))
+test_eval_ncc(
+  z_ncc,
+  case,
+  set_id,
+  betahat,
+  criteria = c("loss", "CIndex", "Brier")
+)
 }
 \arguments{
 \item{z_ncc}{Matrix of covariates for NCC data (rows = subjects).}
@@ -15,12 +21,12 @@ test_eval_ncc(z_ncc, case, set_id, betahat, criteria = c("loss", "CIndex"))
 
 \item{betahat}{Numeric vector of estimated coefficients.}
 
-\item{criteria}{"loss" or "CIndex".}
+\item{criteria}{"loss", "CIndex", or "Brier".}
 }
 \value{
 Numeric performance metric.
 }
 \description{
-Evaluate NCC Model: Loss and C-Index
+Evaluate NCC Model: Loss, C-Index, and Brier Score
 }
 \keyword{internal}

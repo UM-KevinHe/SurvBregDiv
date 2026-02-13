@@ -32,4 +32,4 @@ cv.plot(object, line_color = "#7570B3", baseline_color = "#1B9E77", ...)
 
 ## Value
 
-A `ggplot` object.
+A ggplot object (cowplot combined).

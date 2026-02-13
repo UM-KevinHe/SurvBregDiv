@@ -278,6 +278,38 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// ddloglik_indi
+Rcpp::List ddloglik_indi(const arma::mat& Z, const arma::vec& delta, const arma::vec& beta, const arma::vec& weight, const arma::vec& n_each_stratum);
+RcppExport SEXP _SurvBregDiv_ddloglik_indi(SEXP ZSEXP, SEXP deltaSEXP, SEXP betaSEXP, SEXP weightSEXP, SEXP n_each_stratumSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type delta(deltaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type weight(weightSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type n_each_stratum(n_each_stratumSEXP);
+    rcpp_result_gen = Rcpp::wrap(ddloglik_indi(Z, delta, beta, weight, n_each_stratum));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Cox_indi
+Rcpp::List Cox_indi(const arma::mat& Z, const arma::vec& delta, const arma::vec& weight, const arma::vec& n_each_stratum, arma::vec beta, double tol, int max_iter);
+RcppExport SEXP _SurvBregDiv_Cox_indi(SEXP ZSEXP, SEXP deltaSEXP, SEXP weightSEXP, SEXP n_each_stratumSEXP, SEXP betaSEXP, SEXP tolSEXP, SEXP max_iterSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type delta(deltaSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type weight(weightSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type n_each_stratum(n_each_stratumSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< int >::type max_iter(max_iterSEXP);
+    rcpp_result_gen = Rcpp::wrap(Cox_indi(Z, delta, weight, n_each_stratum, beta, tol, max_iter));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rev_cumsum
 arma::vec rev_cumsum(const arma::vec& X);
 RcppExport SEXP _SurvBregDiv_rev_cumsum(SEXP XSEXP) {
@@ -430,6 +462,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_SurvBregDiv_Cox_NR", (DL_FUNC) &_SurvBregDiv_Cox_NR, 9},
     {"_SurvBregDiv_Cox_MDTL_cpp", (DL_FUNC) &_SurvBregDiv_Cox_MDTL_cpp, 13},
     {"_SurvBregDiv_cox_MDTL_enet_cpp", (DL_FUNC) &_SurvBregDiv_cox_MDTL_enet_cpp, 25},
+    {"_SurvBregDiv_ddloglik_indi", (DL_FUNC) &_SurvBregDiv_ddloglik_indi, 5},
+    {"_SurvBregDiv_Cox_indi", (DL_FUNC) &_SurvBregDiv_Cox_indi, 7},
     {"_SurvBregDiv_rev_cumsum", (DL_FUNC) &_SurvBregDiv_rev_cumsum, 1},
     {"_SurvBregDiv_combn_index", (DL_FUNC) &_SurvBregDiv_combn_index, 2},
     {"_SurvBregDiv_pl_cal_theta", (DL_FUNC) &_SurvBregDiv_pl_cal_theta, 3},

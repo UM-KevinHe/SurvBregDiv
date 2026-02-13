@@ -83,7 +83,7 @@ plot.coxkl <- function(x, test_z = NULL, test_time = NULL, test_delta = NULL,
           criteria = "loss"
         )
       )
-      metrics <- as.numeric(raw_metrics) / n_eval
+      metrics <- as.numeric(raw_metrics)
     }
   } else {
     metrics <- sapply(seq_along(etas), function(i)
@@ -220,7 +220,7 @@ plot.coxkl_ridge <- function(x, test_z = NULL, test_time = NULL, test_delta = NU
           criteria = "loss"
         )
       )
-      metrics <- as.numeric(raw_metrics) / n_eval
+      metrics <- as.numeric(raw_metrics)
     }
     opt_idx <- which.min(metrics)
   } else {
@@ -343,7 +343,7 @@ plot.coxkl_enet <- function(x, test_z = NULL, test_time = NULL, test_delta = NUL
           criteria = "loss"
         )
       )
-      metrics <- as.numeric(raw_metrics) / n_eval
+      metrics <- as.numeric(raw_metrics)
     }
     opt_idx <- which.min(metrics)
   } else {
@@ -468,7 +468,7 @@ plot.cox_MDTL <- function(x, test_z = NULL, test_time = NULL, test_delta = NULL,
           criteria = "loss"
         )
       )
-      metrics <- as.numeric(raw_metrics) / n_eval
+      metrics <- as.numeric(raw_metrics)
     }
   } else {
     metrics <- sapply(seq_along(etas), function(i)
@@ -604,7 +604,7 @@ plot.cox_MDTL_ridge <- function(x, test_z = NULL, test_time = NULL, test_delta =
           criteria = "loss"
         )
       )
-      metrics <- as.numeric(raw_metrics) / n_eval
+      metrics <- as.numeric(raw_metrics)
     }
     opt_idx <- which.min(metrics)
   } else {
@@ -726,7 +726,7 @@ plot.cox_MDTL_enet <- function(x, test_z = NULL, test_time = NULL, test_delta = 
           criteria = "loss"
         )
       )
-      metrics <- as.numeric(raw_metrics) / n_eval
+      metrics <- as.numeric(raw_metrics)
     }
     opt_idx <- which.min(metrics)
   } else {

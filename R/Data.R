@@ -1,64 +1,88 @@
 #' Example high-dimensional survival data
 #'
-#' A simulated survival dataset in a high-dimensional linear setting
-#' with 50 covariates (6 signals + 44 AR(1) noise), Weibull baseline
-#' hazard, and controlled censoring. Includes internal train/test sets,
-#' and an external-data–estimated coefficient vector.
+#' A simulated high-dimensional survival dataset under a linear Cox model
+#' with 50 covariates (6 signals + 44 noise variables), a Weibull baseline
+#' hazard, and controlled censoring. The dataset includes internal
+#' train/test samples and multiple externally estimated coefficient vectors
+#' representing different forms of coefficient perturbation.
 #'
 #' @name ExampleData_highdim
 #' @docType data
 #' @usage data(ExampleData_highdim)
 #'
-#' @format A list containing the following elements:
+#' @format A list with the following components:
 #' \describe{
-#'   \item{train}{A list with components:
+#'   \item{train}{A list containing:
 #'     \describe{
-#'       \item{z}{Data frame of size \eqn{n_\mathrm{train}\times 50} with covariates \code{Z1}–\code{Z50}.}
-#'       \item{status}{Vector of event indicators (\code{1}=event, \code{0}=censored).}
-#'       \item{time}{Numeric vector of observed times \eqn{\min(T, C)}.}
-#'       \item{stratum}{Vector of stratum labels (here all \code{1}).}
+#'       \item{z}{A data frame of dimension \eqn{n_{\mathrm{train}} \times 50}
+#'         containing covariates \code{Z1}–\code{Z50}.}
+#'       \item{status}{A numeric vector of event indicators
+#'         (\code{1}=event, \code{0}=censored).}
+#'       \item{time}{A numeric vector of observed survival times
+#'         \eqn{\min(T, C)}.}
+#'       \item{stratum}{A vector of stratum labels (here all equal to \code{1}).}
 #'     }
 #'   }
-#'   \item{test}{A list with the same structure as \code{train}, with size \eqn{n_\mathrm{test}\times 50} for \code{z}.}
-#'   \item{beta_external}{Numeric vector (length 50, named \code{Z1}–\code{Z50}) of Cox coefficients
-#'     estimated on an external dataset using only \code{Z1}–\code{Z6} and expanded to length 50
-#'     (zeros for \code{Z7}–\code{Z50}).}
+#'   \item{test}{A list with the same structure as \code{train}, with
+#'     covariates of dimension \eqn{n_{\mathrm{test}} \times 50}.}
+#'   \item{beta_external}{A numeric vector of length 50 (named
+#'     \code{Z1}–\code{Z50}) containing Cox regression coefficients estimated
+#'     from an external dataset using only \code{Z1}–\code{Z6}, with zeros
+#'     for \code{Z7}–\code{Z50}.}
+#'   \item{beta_external.multi1}{External coefficient vector with additive
+#'     Gaussian noise applied to the nonzero entries of \code{beta_external},
+#'     preserving the original sparsity pattern.}
+#'   \item{beta_external.multi2}{External coefficient vector with weak
+#'     Gaussian noise applied to all 50 coefficients, yielding a dense but
+#'     low-magnitude perturbation.}
+#'   \item{beta_external.multi3}{A scaled version of \code{beta_external}
+#'     with uniformly attenuated signal strength.}
+#'   \item{beta_external.multi4}{External coefficient vector in which a
+#'     subset of the nonzero coefficients in \code{beta_external} have their
+#'     signs randomly flipped.}
+#'   \item{beta_external.multi5}{External coefficient vector with weakened
+#'     original signals and a small number of newly introduced weak signals
+#'     among previously zero coefficients.}
 #' }
 #'
-#' @details Data-generating mechanism:
+#' @details
+#' Data-generating mechanism:
 #' \itemize{
-#'   \item Covariates: 50 variables with signals \code{Z1}–\code{Z6} and noise \code{Z7}–\code{Z50}.
+#'   \item \strong{Covariates:} 50 covariates with true signals in
+#'     \code{Z1}–\code{Z6} and noise variables in \code{Z7}–\code{Z50}.
 #'     \itemize{
-#'       \item \code{Z1}, \code{Z2} ~ bivariate normal with AR(1) correlation \eqn{\rho=0.5}.
-#'       \item \code{Z3}, \code{Z4} ~ independent Bernoulli(0.5).
-#'       \item \code{Z5} ~ \eqn{N(2,1)}, \code{Z6} ~ \eqn{N(-2,1)} (group indicator fixed at 1).
-#'       \item \code{Z7}–\code{Z50} ~ multivariate normal with AR(1) correlation \eqn{\rho=0.5}.
+#'       \item \code{Z1}, \code{Z2}: bivariate normal with AR(1) correlation
+#'         \eqn{\rho = 0.5}.
+#'       \item \code{Z3}, \code{Z4}: independent Bernoulli(0.5).
+#'       \item \code{Z5} \eqn{\sim N(2, 1)}, \code{Z6} \eqn{\sim N(-2, 1)}.
+#'       \item \code{Z7}–\code{Z50}: multivariate normal with AR(1)
+#'         correlation \eqn{\rho = 0.5}.
 #'     }
-#'   \item True coefficients: \eqn{\beta = (0.3,-0.3,0.3,-0.3,0.3,-0.3,0,\ldots,0)} (length 50).
-#'   \item Event times: Weibull baseline hazard
-#'     \eqn{h_0(t)=\lambda\nu\, t^{\nu-1}} with \eqn{\lambda=1}, \eqn{\nu=2}.
-#'     Given linear predictor \eqn{\eta = Z^\top \beta}, draw \eqn{U\sim\mathrm{Unif}(0,1)} and set
-#'     \deqn{T = \left(\frac{-\log U}{\lambda\, e^{\eta}}\right)^{1/\nu}.}
-#'   \item Censoring: \eqn{C\sim \mathrm{Unif}(0,\text{ub})} with \code{ub} tuned iteratively to
-#'     achieve the target censoring rate (internal: \code{0.70}; external: \code{0.50}).
-#'     Observed time is \eqn{\min(T,C)}, status is \eqn{\mathbf{1}\{T \le C\}}.
-#'   \item External coefficients: Fit a Cox model
-#'     \code{Surv(time, status) ~ Z1 + ... + Z6} on the external data (Breslow ties),
-#'     then place the estimated coefficients into a length-50 vector (zeros elsewhere).
+#'   \item \strong{True coefficients:}
+#'     \eqn{\beta = (0.3, -0.3, 0.3, -0.3, 0.3, -0.3, 0, \ldots, 0)}.
+#'   \item \strong{Event times:} Weibull baseline hazard
+#'     \eqn{h_0(t) = \lambda \nu t^{\nu - 1}} with \eqn{\lambda = 1} and
+#'     \eqn{\nu = 2}. Given linear predictor \eqn{\eta = Z^\top \beta},
+#'     event times are generated as
+#'     \deqn{T = \left(\frac{-\log U}{\lambda e^{\eta}}\right)^{1/\nu},
+#'     \quad U \sim \mathrm{Unif}(0,1).}
+#'   \item \strong{Censoring:} \eqn{C \sim \mathrm{Unif}(0, \mathrm{ub})},
+#'     where \code{ub} is tuned to achieve the target censoring rate
+#'     (internal: 0.70; external: 0.50). The observed time is
+#'     \eqn{\min(T, C)} with event indicator
+#'     \eqn{\mathbf{1}\{T \le C\}}.
+#'   \item \strong{External coefficients:} Cox regression models with
+#'     Breslow ties are fitted on the external dataset using
+#'     \code{Z1}–\code{Z6}. The resulting estimates are embedded into
+#'     length-50 coefficient vectors, with additional variants constructed
+#'     to represent different forms of coefficient perturbation and
+#'     distributional shift.
 #' }
 #'
 #' @examples
 #' data(ExampleData_highdim)
-#'
-#' head(ExampleData_highdim$train$z)
-#' table(ExampleData_highdim$train$status)
-#' summary(ExampleData_highdim$train$time)
-#'
-#' head(ExampleData_highdim$test$z)
-#' table(ExampleData_highdim$test$status)
-#' summary(ExampleData_highdim$test$time)
-#'
 "ExampleData_highdim"
+
 
 
 #' Example low-dimensional survival data
@@ -116,15 +140,6 @@
 #'
 #' @examples
 #' data(ExampleData_lowdim)
-#'
-#' head(ExampleData_lowdim$train$z)
-#' table(ExampleData_lowdim$train$status)
-#' summary(ExampleData_lowdim$train$time)
-#'
-#' head(ExampleData_lowdim$test$z)
-#' table(ExampleData_lowdim$test$status)
-#' summary(ExampleData_lowdim$test$time)
-#'
 "ExampleData_lowdim"
 
 
@@ -175,12 +190,6 @@
 #'
 #' @examples
 #' data(ExampleData_cc)
-#'
-#' # Inspect the first few rows of the covariate matrix (z)
-#' head(ExampleData_cc$train$z)
-#'
-#' # Check the distribution of the binary outcome (y)
-#' table(ExampleData_cc$train$y)
 "ExampleData_cc"
 
 
@@ -206,12 +215,32 @@
 #'
 #' @examples
 #' data(ExampleData_cc_highdim)
-#' table(ExampleData_cc_highdim$train$y)
-#' head(ExampleData_cc_highdim$train$z)
 "ExampleData_cc_highdim"
 
 
-
+#' Example internal/external Cox individual-level data
+#'
+#' A simulated survival dataset for illustrating \code{cox_indi()} and
+#' \code{cv.cox_indi()}. The object contains one internal cohort and one external
+#' cohort, each stratified into multiple strata, along with the true coefficient
+#' vector used in simulation.
+#'
+#' @name ExampleData_indi
+#' @docType data
+#' @usage data(ExampleData_indi)
+#'
+#' @format A list containing:
+#' \describe{
+#'   \item{internal}{List with elements \code{z}, \code{time}, \code{status}, \code{stratum}.}
+#'   \item{external}{List with elements \code{z}, \code{time}, \code{status}, \code{stratum}.}
+#'   \item{beta_true}{Numeric vector (length p) of true coefficients.}
+#'   \item{meta}{List of simulation settings for internal and external cohorts.}
+#' }
+#'
+#' @examples
+#' data(ExampleData_indi)
+#' str(ExampleData_indi)
+"ExampleData_indi"
 
 
 

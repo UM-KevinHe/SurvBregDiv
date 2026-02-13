@@ -53,6 +53,14 @@ cox_MDTL_enet_cpp <- function(delta, Z, n_each_prov, beta, K0, K1, lambda_seq, l
     .Call(`_SurvBregDiv_cox_MDTL_enet_cpp`, delta, Z, n_each_prov, beta, K0, K1, lambda_seq, lambda_early_stop, stop_loss_ratio, group_multiplier, max_total_iter, max_each_iter, tol, initial_active_group, nvar_max, group_max, trace_lambda, actSet, actIter, activeGroupNum, actSetRemove, alpha, eta_mdtl, vcov, Qbeta_ext)
 }
 
+ddloglik_indi <- function(Z, delta, beta, weight, n_each_stratum) {
+    .Call(`_SurvBregDiv_ddloglik_indi`, Z, delta, beta, weight, n_each_stratum)
+}
+
+Cox_indi <- function(Z, delta, weight, n_each_stratum, beta, tol = 1e-6, max_iter = 100L) {
+    .Call(`_SurvBregDiv_Cox_indi`, Z, delta, weight, n_each_stratum, beta, tol, max_iter)
+}
+
 rev_cumsum <- function(X) {
     .Call(`_SurvBregDiv_rev_cumsum`, X)
 }

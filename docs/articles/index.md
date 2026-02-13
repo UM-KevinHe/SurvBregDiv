@@ -8,4 +8,5 @@
 
 ### Appendix
 
-- [Methods](https://um-kevinhe.github.io/SurvBregDiv/articles/Methods.md):
+- [Cross-validation
+  Criteria](https://um-kevinhe.github.io/SurvBregDiv/articles/CV_Criteria.md):

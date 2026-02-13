@@ -13,7 +13,7 @@
 #' @param baseline_color Color for the baseline line. Default is \code{"#1B9E77"}.
 #' @param ... Additional arguments (currently ignored).
 #'
-#' @return A \code{ggplot} object.
+#' @return A ggplot object (cowplot combined).
 #'
 #' @import ggplot2
 #' @importFrom cowplot plot_grid get_legend
@@ -27,15 +27,16 @@ cv.plot <- function(object,
 
   if (inherits(object, "cv.coxkl") ||
       inherits(object, "cv.cox_MDTL") ||
-      inherits(object, "cv.clogitkl")) {
+      inherits(object, "cv.clogitkl") ||
+      inherits(object, "cv.cox_indi")) {
 
     df <- object$internal_stat
     criteria <- object$criteria
 
-  } else if (inherits(object, "cv.coxkl_ridge")  ||
+  } else if (inherits(object, "cv.coxkl_ridge")   ||
              inherits(object, "cv.cox_MDTL_ridge") ||
              inherits(object, "cv.coxkl_enet")     ||
-             inherits(object, "cv.cox_MDTL_enet") ||
+             inherits(object, "cv.cox_MDTL_enet")  ||
              inherits(object, "cv.clogitkl_enet")) {
 
     df <- object$integrated_stat.best_per_eta
@@ -75,8 +76,9 @@ cv.plot <- function(object,
   if (is.null(metric_col)) {
     num_cols <- names(df)[vapply(df, is.numeric, logical(1))]
     num_cols <- setdiff(num_cols, c("eta", "lambda"))
-    if (length(num_cols) == 0L)
+    if (length(num_cols) == 0L) {
       stop("Could not detect metric column in CV results.", call. = FALSE)
+    }
     metric_col <- num_cols[length(num_cols)]
   }
 
@@ -141,21 +143,13 @@ cv.plot <- function(object,
     )
 
   legend_df <- data.frame(
-    x = rep(c(0, 1), 2),
-    y = rep(1, 4),
-    Method = factor(rep(c("Integrated", "Internal"), each = 2),
-                    levels = c("Integrated", "Internal"))
+    Method = factor(c("Integrated", "Internal"),
+                    levels = c("Integrated", "Internal")),
+    x = 0, y = 0
   )
 
-  g_legend <- ggplot(legend_df,
-                     aes(x = .data$x, y = .data$y,
-                         color = .data$Method, linetype = .data$Method)) +
-    geom_line(linewidth = 1) +
-    geom_point(
-      data = subset(legend_df, Method == "Internal"),
-      aes(x = 0.5, y = 1, color = Method),
-      inherit.aes = FALSE, shape = 16, size = 2.4
-    ) +
+  g_legend <- ggplot(legend_df, aes(x = .data$x, y = .data$y, color = .data$Method)) +
+    geom_line(aes(linetype = .data$Method), linewidth = 1) +
     scale_color_manual(values = c("Integrated" = line_color, "Internal" = baseline_color)) +
     scale_linetype_manual(values = c("Integrated" = "solid", "Internal" = "dotted")) +
     theme_void(base_size = 13) +
@@ -167,15 +161,23 @@ cv.plot <- function(object,
       legend.key.height = unit(0.6, "lines")
     ) +
     guides(
-      color    = guide_legend(keywidth = 1.2, keyheight = 0.4, title = NULL),
-      linetype = guide_legend(keywidth = 1.2, keyheight = 0.4, title = NULL)
+      color = guide_legend(
+        keywidth = 1.2, keyheight = 0.4,
+        override.aes = list(
+          linetype = c("solid", "dotted"),
+          shape = c(NA, 16),
+          linewidth = 1
+        )
+      ),
+      linetype = "none"
     )
 
+  leg <- cowplot::get_legend(g_legend)
+
   cowplot::plot_grid(
-    cowplot::get_legend(g_legend),
+    leg,
     g_main,
     ncol = 1,
     rel_heights = c(0.08, 1)
   )
 }
-

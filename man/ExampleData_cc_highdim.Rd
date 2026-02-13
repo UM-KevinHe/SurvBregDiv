@@ -24,7 +24,5 @@ and an externally supplied coefficient vector for KL-based integration.
 }
 \examples{
 data(ExampleData_cc_highdim)
-table(ExampleData_cc_highdim$train$y)
-head(ExampleData_cc_highdim$train$z)
 }
 \keyword{datasets}

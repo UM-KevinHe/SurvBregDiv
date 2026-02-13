@@ -2,9 +2,18 @@
 % Please edit documentation in R/simulation_funs.R
 \name{sim.matched_cc}
 \alias{sim.matched_cc}
-\title{Simulate 1:m matched case-control data}
+\title{Simulate 1:m matched case-control data with mean/SD control}
 \usage{
-sim.matched_cc(n_stratum, m, beta, rho = 0.8, stratum_sd = 0.5, seed = NULL)
+sim.matched_cc(
+  n_stratum,
+  m,
+  beta,
+  rho = 0.8,
+  mu_Z = 0,
+  sd_Z = 1,
+  stratum_sd = 0.5,
+  seed = NULL
+)
 }
 \arguments{
 \item{n_stratum}{Number of matched strata (sets).}
@@ -13,7 +22,11 @@ sim.matched_cc(n_stratum, m, beta, rho = 0.8, stratum_sd = 0.5, seed = NULL)
 
 \item{beta}{Numeric vector of coefficients (length p).}
 
-\item{rho}{Correlation parameter for Z within stratum.}
+\item{rho}{Correlation parameter for Z within stratum (equicorrelation).}
+
+\item{mu_Z}{Mean vector for Z. Scalar or length p.}
+
+\item{sd_Z}{Standard deviation vector for Z. Scalar or length p, must be positive.}
 
 \item{stratum_sd}{SD of stratum random intercepts.}
 
@@ -24,6 +37,7 @@ A list containing matched data frames and simulation metadata.
 }
 \description{
 Internal function to simulate 1:m matched data. Each stratum contains exactly one case.
-Probabilities are proportional to \code{exp(eta)}.
+The case is sampled with probability proportional to exp(eta), where
+eta = theta_stratum + Z \%*\% beta.
 }
 \keyword{internal}

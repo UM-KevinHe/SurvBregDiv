@@ -1,11 +1,17 @@
-# Evaluate NCC Model: Loss and C-Index
+# Evaluate NCC Model: Loss, C-Index, and Brier Score
 
-Evaluate NCC Model: Loss and C-Index
+Evaluate NCC Model: Loss, C-Index, and Brier Score
 
 ## Usage
 
 ``` r
-test_eval_ncc(z_ncc, case, set_id, betahat, criteria = c("loss", "CIndex"))
+test_eval_ncc(
+  z_ncc,
+  case,
+  set_id,
+  betahat,
+  criteria = c("loss", "CIndex", "Brier")
+)
 ```
 
 ## Arguments
@@ -28,7 +34,7 @@ test_eval_ncc(z_ncc, case, set_id, betahat, criteria = c("loss", "CIndex"))
 
 - criteria:
 
-  "loss" or "CIndex".
+  "loss", "CIndex", or "Brier".
 
 ## Value
 

@@ -1,5 +1,6 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/404.html</loc></url>
+<url><loc>https://um-kevinhe.github.io/SurvBregDiv/articles/CV_Criteria.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/articles/index.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/articles/Methods.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/articles/SurvBregDiv.html</loc></url>
@@ -11,10 +12,12 @@
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cox.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.html</loc></url>
+<url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.multi.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.StabSelect.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet_bagging.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ridge.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ties.html</loc></url>
+<url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cox_indi.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.StabSelect.html</loc></url>
@@ -26,6 +29,7 @@
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_enet.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ridge.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ties.html</loc></url>
+<url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_indi.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_enet.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_ridge.html</loc></url>
@@ -33,6 +37,7 @@
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_cc.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_cc_highdim.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_highdim.html</loc></url>
+<url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_indi.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_lowdim.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/index.html</loc></url>
@@ -43,6 +48,7 @@
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/plot.cox_MDTL_enet.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/plot.cox_MDTL_ridge.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/plot.StabSelect.html</loc></url>
+<url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/plot.variable_importance.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/sim.binary.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/sim.cox.highdim.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/sim.matched_cc.html</loc></url>
@@ -50,5 +56,6 @@
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/SurvBregDiv.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/test_eval.html</loc></url>
 <url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/test_eval_ncc.html</loc></url>
+<url><loc>https://um-kevinhe.github.io/SurvBregDiv/reference/variable_importance.html</loc></url>
 </urlset>
 

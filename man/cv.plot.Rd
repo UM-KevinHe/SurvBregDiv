@@ -16,7 +16,7 @@ cv.plot(object, line_color = "#7570B3", baseline_color = "#1B9E77", ...)
 \item{...}{Additional arguments (currently ignored).}
 }
 \value{
-A \code{ggplot} object.
+A ggplot object (cowplot combined).
 }
 \description{
 Plots cross-validation performance across eta values for

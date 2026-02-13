@@ -34,8 +34,8 @@ test_eval <- function(test_z, test_delta, test_time,
                       criteria = c("loss", "CIndex", "IBS", "tdAUC")) {
 
   criteria <- match.arg(criteria)
-  test_RS <- as.vector(as.matrix(test_z) %*% as.matrix(betahat))
 
+  test_RS <- as.vector(as.matrix(test_z) %*% as.matrix(betahat))
   d_test <- data.frame(time = as.numeric(test_time), status = as.numeric(test_delta))
   n <- nrow(d_test)
   if (is.null(test_stratum)) test_stratum <- rep(1, n)
@@ -49,54 +49,23 @@ test_eval <- function(test_z, test_delta, test_time,
     return(c_stat_stratcox(d_test$time, test_RS, test_stratum, d_test$status)$c_statistic)
   }
 
-  eval_times <- sort(unique(d_test$time[d_test$status == 1]))
-
-  # if (criteria == "IBS") {
-  #   S_mat <- predict_surv_prob(
-  #     test_RS = test_RS,
-  #     eval_times = eval_times,
-  #     train_baseline_obj = train_baseline_obj,
-  #     test_stratum = test_stratum
-  #   )
-  #
-  #   risk_mat <- 1 - S_mat
-  #
-  #   score_res <- riskRegression::Score(
-  #     object = list("MyModel" = risk_mat),
-  #     formula = Surv(time, status) ~ 1,
-  #     data = d_test,
-  #     times = eval_times,
-  #     metrics = "brier",
-  #     summary = "ibs"
-  #   )
-  #
-  #   brier_summary <- as.data.frame(score_res$Brier$summary)
-  #
-  #   if (nrow(brier_summary) > 0 && "IBS" %in% colnames(brier_summary)) {
-  #     ibs_val <- brier_summary[brier_summary$model == "MyModel", "IBS"]
-  #   } else {
-  #     brier_scores <- as.data.frame(score_res$Brier$score)
-  #     brier_scores <- brier_scores[brier_scores$model == "MyModel", ]
-  #     x <- brier_scores$times
-  #     y <- brier_scores$Brier
-  #     ibs_val <- sum(diff(x) * (head(y, -1) + tail(y, -1)) / 2) / (max(x) - min(x))
-  #   }
-  #
-  #   return(as.numeric(ibs_val))
-  # }
-
+  eval_times_all <- sort(unique(d_test$time[d_test$status == 1]))
+  if (length(eval_times_all) < 2L) return(NA_real_)
 
   if (criteria == "IBS") {
+    if (is.null(train_baseline_obj)) return(NA_real_)
+
     S_mat <- predict_surv_prob(
       test_RS = test_RS,
-      eval_times = eval_times,
+      eval_times = eval_times_all,
       train_baseline_obj = train_baseline_obj,
       test_stratum = test_stratum
     )
     risk_mat <- 1 - S_mat
+    risk_mat <- as.matrix(risk_mat)
+    colnames(risk_mat) <- as.character(eval_times_all)
 
     unique_strata <- sort(unique(test_stratum))
-    n_total <- nrow(d_test)
     ibs_vals <- numeric(length(unique_strata))
     weights <- numeric(length(unique_strata))
 
@@ -106,149 +75,179 @@ test_eval <- function(test_z, test_delta, test_time,
 
       if (length(idx) < 2L || all(d_test$status[idx] == 0)) {
         ibs_vals[k] <- NA_real_
-        weights[k]  <- 0
+        weights[k] <- 0
         next
       }
 
       d_s <- d_test[idx, , drop = FALSE]
-      risk_s <- risk_mat[idx, , drop = FALSE]
+
+      ev_times_s <- d_s$time[d_s$status == 1]
+      if (length(ev_times_s) == 0L) {
+        ibs_vals[k] <- NA_real_
+        weights[k] <- 0
+        next
+      }
+
+      min_ev_s <- min(ev_times_s, na.rm = TRUE)
+      max_t_s <- max(d_s$time, na.rm = TRUE)
+
+      times_s <- eval_times_all[eval_times_all >= min_ev_s & eval_times_all <= max_t_s]
+      if (length(times_s) < 2L) {
+        ibs_vals[k] <- NA_real_
+        weights[k] <- 0
+        next
+      }
+
+      col_idx <- match(as.character(times_s), colnames(risk_mat))
+      if (any(is.na(col_idx))) {
+        ibs_vals[k] <- NA_real_
+        weights[k] <- 0
+        next
+      }
+
+      risk_s <- risk_mat[idx, col_idx, drop = FALSE]
+      risk_s <- as.matrix(risk_s)
+      colnames(risk_s) <- as.character(times_s)
+
+      keep <- is.finite(d_s$time) & !is.na(d_s$status) & apply(is.finite(risk_s), 1, all)
+      if (sum(keep) < 2L || all(d_s$status[keep] == 0)) {
+        ibs_vals[k] <- NA_real_
+        weights[k] <- 0
+        next
+      }
+
+      d_s2 <- d_s[keep, , drop = FALSE]
+      risk_s2 <- risk_s[keep, , drop = FALSE]
 
       score_res_s <- riskRegression::Score(
-        object  = list("MyModel" = risk_s),
-        formula = survival::Surv(time, status) ~ 1,
-        data    = d_s,
-        times   = eval_times,
+        object  = list(MyModel = risk_s2),
+        formula = Surv(time, status) ~ 1,
+        data    = d_s2,
+        times   = times_s,
         metrics = "brier",
         summary = "ibs"
       )
 
-      brier_summary_s <- as.data.frame(score_res_s$Brier$summary)
-
-      if (nrow(brier_summary_s) > 0 && "IBS" %in% colnames(brier_summary_s)) {
-        ibs_vals[k] <- brier_summary_s[
-          brier_summary_s$model == "MyModel",
-          "IBS"
-        ]
-        weights[k] <- length(idx)
+      bsum <- as.data.frame(score_res_s$Brier$summary)
+      if (nrow(bsum) > 0 && "IBS" %in% colnames(bsum)) {
+        ibs_vals[k] <- bsum[bsum$model == "MyModel", "IBS"]
+        weights[k] <- nrow(d_s2)
       } else {
-        ibs_vals[k] <- NA_real_
-        weights[k]  <- 0
+        bsc <- as.data.frame(score_res_s$Brier$score)
+        bsc <- bsc[bsc$model == "MyModel", , drop = FALSE]
+        if (nrow(bsc) >= 2) {
+          tcol <- if ("times" %in% names(bsc)) "times" else if ("time" %in% names(bsc)) "time" else NA_character_
+          if (is.na(tcol) || !"Brier" %in% names(bsc)) {
+            ibs_vals[k] <- NA_real_
+            weights[k] <- 0
+          } else {
+            x <- as.numeric(bsc[[tcol]])
+            y <- as.numeric(bsc[["Brier"]])
+            ord <- order(x)
+            x <- x[ord]; y <- y[ord]
+            if (length(x) >= 2 && max(x) > min(x)) {
+              ibs_vals[k] <- sum(diff(x) * (head(y, -1) + tail(y, -1)) / 2) / (max(x) - min(x))
+              weights[k] <- nrow(d_s2)
+            } else {
+              ibs_vals[k] <- NA_real_
+              weights[k] <- 0
+            }
+          }
+        } else {
+          ibs_vals[k] <- NA_real_
+          weights[k] <- 0
+        }
       }
     }
 
     if (sum(weights) == 0) return(NA_real_)
-
     ibs_val <- sum(ibs_vals * weights, na.rm = TRUE) / sum(weights)
     return(as.numeric(ibs_val))
   }
 
-  # if (criteria == "tdAUC") {
-  #   score_res <- riskRegression::Score(
-  #     object = list("MyModel" = test_RS),
-  #     formula = Surv(time, status) ~ 1,
-  #     data = d_test,
-  #     times = eval_times,
-  #     metrics = "auc"
-  #   )
-  #
-  #   auc_df <- as.data.frame(score_res$AUC$score)
-  #   auc_df <- auc_df[auc_df$model == "MyModel", ]
-  #
-  #   x <- auc_df$time
-  #   y <- auc_df$AUC
-  #   valid <- !is.na(y)
-  #   if(sum(valid) < 2) return(mean(y, na.rm = TRUE))
-  #
-  #   iauc <- sum(diff(x[valid]) * (head(y[valid], -1) + tail(y[valid], -1)) / 2) /
-  #     (max(x[valid]) - min(x[valid]))
-  #   return(iauc)
-  # }
-
-
   if (criteria == "tdAUC") {
-    # Global event times
-    eval_times <- sort(unique(d_test$time[d_test$status == 1]))
-    if (length(eval_times) < 2L) {
-      return(NA_real_)
-    }
-
     unique_strata <- sort(unique(test_stratum))
-    n_times <- length(eval_times)
     n_strata <- length(unique_strata)
+    n_times <- length(eval_times_all)
 
-    # dN_s(t): rows = strata, cols = times
     dN_mat <- matrix(0, nrow = n_strata, ncol = n_times)
-    rownames(dN_mat) <- as.character(unique_strata)
-
-    for (k in seq_along(unique_strata)) {
-      s <- unique_strata[k]
-      idx <- which(test_stratum == s)
-      time_s <- d_test$time[idx]
-      status_s <- d_test$status[idx]
-
-      for (j in seq_along(eval_times)) {
-        t <- eval_times[j]
-        dN_mat[k, j] <- sum(time_s == t & status_s == 1)
-      }
-    }
-
-    # AUC_s(t): same dimension as dN_mat
     AUC_mat <- matrix(NA_real_, nrow = n_strata, ncol = n_times)
-    rownames(AUC_mat) <- as.character(unique_strata)
 
     for (k in seq_along(unique_strata)) {
       s <- unique_strata[k]
       idx <- which(test_stratum == s)
 
-      # Skip strata with fewer than 2 subjects or no events
-      if (length(idx) < 2L || all(d_test$status[idx] == 0)) {
-        next
-      }
+      if (length(idx) < 2L || all(d_test$status[idx] == 0)) next
 
       d_s <- d_test[idx, , drop = FALSE]
-      rs  <- test_RS[idx]
+      rs <- test_RS[idx]
+
+      ev_times_s <- d_s$time[d_s$status == 1]
+      if (length(ev_times_s) == 0L) next
+
+      min_ev_s <- min(ev_times_s, na.rm = TRUE)
+      max_t_s <- max(d_s$time, na.rm = TRUE)
+
+      times_s <- eval_times_all[eval_times_all >= min_ev_s & eval_times_all <= max_t_s]
+      if (length(times_s) < 2L) next
+
+      for (j in seq_along(eval_times_all)) {
+        t <- eval_times_all[j]
+        dN_mat[k, j] <- sum(d_s$time == t & d_s$status == 1)
+      }
+
+      keep <- is.finite(d_s$time) & !is.na(d_s$status) & is.finite(rs)
+      if (sum(keep) < 2L || all(d_s$status[keep] == 0)) next
+
+      d_s2 <- d_s[keep, , drop = FALSE]
+      rs2 <- rs[keep]
 
       score_res_s <- riskRegression::Score(
-        object  = list("MyModel" = rs),
-        formula = survival::Surv(time, status) ~ 1,
-        data    = d_s,
-        times   = eval_times,
+        object  = list(MyModel = rs2),
+        formula = Surv(time, status) ~ 1,
+        data    = d_s2,
+        times   = times_s,
         metrics = "auc"
       )
 
-      auc_df_s <- as.data.frame(score_res_s$AUC$score)
-      auc_df_s <- auc_df_s[auc_df_s$model == "MyModel", ]
+      auc_df <- as.data.frame(score_res_s$AUC$score)
+      auc_df <- auc_df[auc_df$model == "MyModel", , drop = FALSE]
+      if (nrow(auc_df) == 0) next
 
-      # Align AUC_s(t) with eval_times
+      tcol <- if ("times" %in% names(auc_df)) "times" else if ("time" %in% names(auc_df)) "time" else NA_character_
+      acol <- if ("AUC" %in% names(auc_df)) "AUC" else NA_character_
+      if (is.na(tcol) || is.na(acol)) next
+
+      tt <- as.numeric(auc_df[[tcol]])
+      aa <- as.numeric(auc_df[[acol]])
+
       AUC_vec <- rep(NA_real_, n_times)
-      match_idx <- match(eval_times, auc_df_s$time)
-      ok <- !is.na(match_idx)
-      AUC_vec[ok] <- auc_df_s$AUC[match_idx[ok]]
+      m <- match(eval_times_all, tt)
+      ok <- !is.na(m)
+      AUC_vec[ok] <- aa[m[ok]]
 
       AUC_mat[k, ] <- AUC_vec
     }
 
-    # Aggregate across strata using dN_s(t) weights
     numer_t <- colSums(dN_mat * AUC_mat, na.rm = TRUE)
     denom_t <- colSums(dN_mat, na.rm = TRUE)
-
     AUC_t <- ifelse(denom_t > 0, numer_t / denom_t, NA_real_)
 
-    valid <- !is.na(AUC_t)
-    if (sum(valid) < 2L) {
-      return(mean(AUC_t, na.rm = TRUE))
-    }
+    valid <- is.finite(AUC_t)
+    if (sum(valid) < 2L) return(mean(AUC_t, na.rm = TRUE))
 
-    x <- eval_times[valid]
+    x <- eval_times_all[valid]
     y <- AUC_t[valid]
+    if (max(x) <= min(x)) return(mean(y, na.rm = TRUE))
 
     iauc <- sum(diff(x) * (head(y, -1) + tail(y, -1)) / 2) / (max(x) - min(x))
-    return(iauc)
+    return(as.numeric(iauc))
   }
 
+  NA_real_
 }
 
-
+#' @export
 predict_surv_prob <- function(test_RS, eval_times, train_baseline_obj, test_stratum = NULL) {
   n <- length(test_RS)
   if (is.null(test_stratum)) test_stratum <- rep(1, n)
@@ -261,14 +260,15 @@ predict_surv_prob <- function(test_RS, eval_times, train_baseline_obj, test_stra
     Lambda0_t <- train_baseline_obj$predict_baseline(eval_times, strat_id = s)
     S_pred[idx, ] <- exp(-exp(test_RS[idx]) %o% Lambda0_t)
   }
-  return(S_pred)
+  S_pred
 }
 
+#' @export
 get_baseline_hazard <- function(z, delta, time, beta, stratum = NULL) {
   lp <- drop(as.matrix(z) %*% as.matrix(beta))
 
   if (is.null(stratum)) {
-    df <- data.frame(time = time, status = delta)
+    df <- data.frame(time = as.numeric(time), status = as.numeric(delta))
     fit_fixed <- survival::coxph(Surv(time, status) ~ offset(lp), data = df)
     bh <- survival::basehaz(fit_fixed, centered = FALSE)
 
@@ -295,7 +295,7 @@ get_baseline_hazard <- function(z, delta, time, beta, stratum = NULL) {
 
   for (s in u) {
     idx <- which(str_raw == s)
-    df_s <- data.frame(time = time[idx], status = delta[idx])
+    df_s <- data.frame(time = as.numeric(time[idx]), status = as.numeric(delta[idx]))
 
     fit_s <- survival::coxph(
       Surv(time, status) ~ offset(lp[idx]),
@@ -322,17 +322,6 @@ get_baseline_hazard <- function(z, delta, time, beta, stratum = NULL) {
 
   list(predict_baseline = predict_baseline)
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 

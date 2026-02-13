@@ -3,7 +3,13 @@
 (Conditional Logistic Regression, CLR). The data is organized into matched sets
 (strata), with exactly one case (y=1) and \(m=4\) controls (y=0) per set."><meta property="og:description" content="A simulated dataset generated for 1:M matched case-control studies
 (Conditional Logistic Regression, CLR). The data is organized into matched sets
-(strata), with exactly one case (y=1) and \(m=4\) controls (y=0) per set."></head><body>
+(strata), with exactly one case (y=1) and \(m=4\) controls (y=0) per set."><!-- Global site tag (gtag.js) - Google Analytics --><script async src="https://www.googletagmanager.com/gtag/js?id=UA-54921687-5"></script><script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-54921687-5');
+</script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -22,9 +28,8 @@
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/SurvBregDiv.html">Get started</a></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/SurvBregDiv.html">Overview</a></li>
-    <li><a class="dropdown-item" href="../articles/Methods.html">Methods appendix</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-appendix" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Appendix</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-appendix"><li><a class="dropdown-item" href="../articles/CV_Criteria.html">CV Criteria</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/UM-KevinHe/SurvBregDiv" aria-label="GitHub repository"><span class="fa fa-github fa-lg"></span></a></li>
@@ -98,22 +103,6 @@ using the <code>"breslow"</code> tie approximation.</p></li>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">ExampleData_cc</span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Inspect the first few rows of the covariate matrix (z)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">ExampleData_cc</span><span class="op">$</span><span class="va">train</span><span class="op">$</span><span class="va">z</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               Z1         Z2         Z3          Z4          Z5           Z6</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]  1.42087877  1.6308974  0.9538616  0.07376305  0.03428315  0.546671598</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,]  1.82713082  0.8303178 -0.3442864 -0.48402535  0.48166198 -0.116491439</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,]  1.22007941  0.7867172  1.6578626 -0.38287991 -2.76409690  1.818135337</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] -0.01727926 -0.5445138  0.2732903  0.83712396  0.64761711 -0.617661015</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,]  1.02388718  0.8927722  0.8106354  1.17493045 -1.19407166 -0.009421722</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] -2.44226899  0.4824824 -0.1075286  0.34754847 -0.30607005  0.463093251</span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Check the distribution of the binary outcome (y)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">ExampleData_cc</span><span class="op">$</span><span class="va">train</span><span class="op">$</span><span class="va">y</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0   1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 800 200 </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

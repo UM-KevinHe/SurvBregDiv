@@ -5,7 +5,13 @@ training and test sets and include both the true underlying coefficients
 and an externally supplied coefficient vector for KL-based integration."><meta property="og:description" content="A simulated 1:5 matched case-control dataset with 20 covariates,
 where 10 covariates are truly non-zero. The data are split into
 training and test sets and include both the true underlying coefficients
-and an externally supplied coefficient vector for KL-based integration."></head><body>
+and an externally supplied coefficient vector for KL-based integration."><!-- Global site tag (gtag.js) - Google Analytics --><script async src="https://www.googletagmanager.com/gtag/js?id=UA-54921687-5"></script><script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-54921687-5');
+</script></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -24,9 +30,8 @@ and an externally supplied coefficient vector for KL-based integration."></head>
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../index.html">Home</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/SurvBregDiv.html">Get started</a></li>
 <li class="nav-item dropdown">
-  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/SurvBregDiv.html">Overview</a></li>
-    <li><a class="dropdown-item" href="../articles/Methods.html">Methods appendix</a></li>
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-appendix" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Appendix</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-appendix"><li><a class="dropdown-item" href="../articles/CV_Criteria.html">CV Criteria</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/UM-KevinHe/SurvBregDiv" aria-label="GitHub repository"><span class="fa fa-github fa-lg"></span></a></li>
@@ -75,39 +80,6 @@ and an externally supplied coefficient vector for KL-based integration.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">ExampleData_cc_highdim</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">ExampleData_cc_highdim</span><span class="op">$</span><span class="va">train</span><span class="op">$</span><span class="va">y</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0   1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 450  50 </span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">ExampleData_cc_highdim</span><span class="op">$</span><span class="va">train</span><span class="op">$</span><span class="va">z</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Z1         Z2          Z3         Z4         Z5           Z6</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]  1.4611595 -0.4337634 -0.19580912 -0.9710716 -2.0865843 -0.239835608</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] -0.4022167 -1.0825005 -0.21833539 -0.9249490 -0.8127299  1.085952441</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] -1.0639890  0.1340951  0.28180593 -0.3163208  1.7753520 -0.080932050</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,]  2.5053092 -0.7174750  0.07707777 -0.1388942 -0.2036942 -0.816647571</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] -0.4559238 -0.2339386  0.75748825 -0.5373669  0.9870436 -0.397471239</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] -0.1274066 -0.9105335 -1.60320176 -0.4957522  0.7000221  0.003717702</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                Z7         Z8         Z9        Z10        Z11        Z12</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] -0.968512774 -0.5317932  0.5332914 -0.4253693  0.7721337 -0.2454276</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,]  0.757822313 -1.6245614  0.5438503  0.4338086 -0.7681879 -0.4537053</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] -2.086653049 -0.6027954 -0.2068006 -0.2999812  0.4455223 -0.2156660</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,]  0.008336971 -1.4387924 -0.1056239  0.3303660  0.3547015 -1.0132220</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,]  1.328067232 -0.7843972 -1.3533522  1.0805977  1.2105810  1.7303790</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] -2.211353611 -0.2443305 -1.2150816 -1.1020840 -1.0640061 -1.3632340</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Z13        Z14        Z15         Z16         Z17        Z18</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]  0.05763206  0.7916978 -0.3372248 -0.24097349 -1.62260415  1.0745083</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,]  0.65016454 -0.4662842  0.5785056  0.62206135 -0.01953363  0.8032010</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,]  0.49218663  0.6169846 -0.2566177  1.22935275 -0.01466452 -0.4857751</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] -2.12257983 -0.7336376 -0.5649878 -0.66695983 -0.74322925 -0.7392598</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,]  0.69525556 -0.9749203  1.0245039 -0.02051299 -1.05985535 -0.2311598</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6,] -1.03874778 -0.3121822 -0.1645355 -0.14097307  1.33026232 -1.7632391</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              Z19         Z20</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]  1.13197467  0.05459292</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] -0.26668710  1.21362397</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3,] -0.09568543  0.50513811</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [4,] -3.22213593 -0.66625942</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5,] -0.67129623 -0.99512611</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [6,]  0.93078885 -0.91234266</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -33,6 +33,7 @@ Imports:
 Depends:
     R (>= 4.0)
 Suggests:
+    bookdown,
     knitr,
     rmarkdown,
     kableExtra

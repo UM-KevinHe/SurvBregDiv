@@ -49,11 +49,5 @@ using the \code{"breslow"} tie approximation.
 }
 \examples{
 data(ExampleData_cc)
-
-# Inspect the first few rows of the covariate matrix (z)
-head(ExampleData_cc$train$z)
-
-# Check the distribution of the binary outcome (y)
-table(ExampleData_cc$train$y)
 }
 \keyword{datasets}

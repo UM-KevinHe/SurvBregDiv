@@ -59,14 +59,5 @@ with zeros for variables not included.
 }
 \examples{
 data(ExampleData_lowdim)
-
-head(ExampleData_lowdim$train$z)
-table(ExampleData_lowdim$train$status)
-summary(ExampleData_lowdim$train$time)
-
-head(ExampleData_lowdim$test$z)
-table(ExampleData_lowdim$test$status)
-summary(ExampleData_lowdim$test$time)
-
 }
 \keyword{datasets}

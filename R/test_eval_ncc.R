@@ -1,10 +1,10 @@
-#' Evaluate NCC Model: Loss and C-Index
+#' Evaluate NCC Model: Loss, C-Index, and Brier Score
 #'
 #' @param z_ncc Matrix of covariates for NCC data (rows = subjects).
 #' @param case Integer or logical vector (0/1) indicating cases.
 #' @param set_id Vector of matched set identifiers.
 #' @param betahat Numeric vector of estimated coefficients.
-#' @param criteria "loss" or "CIndex".
+#' @param criteria "loss", "CIndex", or "Brier".
 #'
 #' @return Numeric performance metric.
 #'
@@ -14,7 +14,7 @@ test_eval_ncc <- function(z_ncc,
                           case,
                           set_id,
                           betahat,
-                          criteria = c("loss", "CIndex")) {
+                          criteria = c("loss", "CIndex", "Brier")) {
   criteria <- match.arg(criteria)
   z_ncc <- as.matrix(z_ncc)
   betahat <- as.matrix(betahat)
@@ -23,7 +23,6 @@ test_eval_ncc <- function(z_ncc,
   case <- as.integer(case)
   set_id <- as.factor(set_id)
 
-  # Reorder within each set: case first, then controls
   levs <- levels(set_id)
   ord_list <- vector("list", length(levs))
 
@@ -32,7 +31,6 @@ test_eval_ncc <- function(z_ncc,
     idx <- which(set_id == s)
     yk <- case[idx]
 
-    # case first
     idx_case <- idx[yk == 1L]
     idx_ctrl <- idx[yk == 0L]
 
@@ -49,19 +47,15 @@ test_eval_ncc <- function(z_ncc,
   case_ord  <- case[ord]
   set_ord   <- set_id[ord]
 
-  # Number of subjects per set (stratum)
   n_each_stratum <- as.numeric(table(set_ord))
 
   if (criteria == "loss") {
-    # Treat each matched set as a stratum; use case as "event"
     delta <- case_ord
     loglik <- pl_cal_theta(
       lp = lp_ord,
       delta = delta,
       n_each_stratum = n_each_stratum
     )
-
-    # Scale by number of sets; you can switch to length(lp_ord) if preferred
     n_sets <- length(n_each_stratum)
     return(as.numeric(-2 * loglik / n_sets))
   }
@@ -73,6 +67,11 @@ test_eval_ncc <- function(z_ncc,
       set_id = set_ord
     )
     return(as.numeric(auc_obj$auc))
+  }
+
+  if (criteria == "Brier") {
+    p_hat <- prob_in_set(lp_ord, set_ord)
+    return(mean((case_ord - p_hat)^2))
   }
 
   stop("Unsupported criteria for NCC: ", criteria)
@@ -125,4 +124,23 @@ auc_ncc <- function(y, score, set_id) {
     denom = denom,
     auc   = numer / denom
   )
+}
+
+
+prob_in_set <- function(lp, set_id) {
+  lp <- as.numeric(lp)
+  set_id <- as.factor(set_id)
+
+  levs <- levels(set_id)
+  p <- numeric(length(lp))
+
+  for (s in levs) {
+    idx <- which(set_id == s)
+    lp_s <- lp[idx]
+    a <- max(lp_s)
+    w <- exp(lp_s - a)
+    p[idx] <- w / sum(w)
+  }
+
+  p
 }

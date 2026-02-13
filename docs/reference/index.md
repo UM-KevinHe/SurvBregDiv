@@ -1,5 +1,13 @@
 # Package index
 
+## Individual-level Internal–External Integration
+
+- [`cox_indi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_indi.md)
+  : Cox Proportional Hazards Model Integrated with External
+  Individual-level Information
+- [`cv.cox_indi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_indi.md)
+  : Cross-Validated cox_indi to Tune etas
+
 ## Low-Dimensional Bregman Divergence based Integrated Cox Model
 
 - [`coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl.md)
@@ -41,8 +49,10 @@
 - [`cv.cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_enet.md)
   : Cross-Validation for Cox MDTL with Elastic Net Regularization
 
-## Stability Selection for High-Dimensional Models
+## Variable Importance/Stability Selection for High-Dimensional Models
 
+- [`variable_importance()`](https://um-kevinhe.github.io/SurvBregDiv/reference/variable_importance.md)
+  : Bootstrap Variable Importance via Selection Frequency
 - [`coxkl_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.StabSelect.md)
   : Stability Selection for KL-Integrated Cox Elastic-Net Models
 - [`cox_MDTL_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.StabSelect.md)
@@ -70,6 +80,11 @@
 - [`cv.clogitkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl_enet.md)
   : Cross-Validated CLR-KL with Elastic Net Penalty
 
+## Multi-Source Integration
+
+- [`coxkl_enet.multi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.multi.md)
+  : Multi-Source Integration for KL-Integrated Cox Elastic-Net Models
+
 ## Plotting Functions
 
 - [`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md)
@@ -88,6 +103,8 @@
   : Plot Validation Results for cox_MDTL_ridge Object
 - [`plot(`*`<StabSelect>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.StabSelect.md)
   : Plot Stability Selection Path
+- [`plot(`*`<variable_importance>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.variable_importance.md)
+  : Plot Variable Importance (Selection Frequency)
 
 ## Utilities
 
@@ -104,3 +121,5 @@
   : Example Data for Conditional Logistic Regression
 - [`ExampleData_cc_highdim`](https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_cc_highdim.md)
   : Example high-dimensional matched case-control data
+- [`ExampleData_indi`](https://um-kevinhe.github.io/SurvBregDiv/reference/ExampleData_indi.md)
+  : Example internal/external Cox individual-level data

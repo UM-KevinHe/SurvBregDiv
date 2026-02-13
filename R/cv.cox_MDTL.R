@@ -78,16 +78,16 @@ cv.cox_MDTL <- function(z, delta, time, stratum = NULL,
                         c_index_stratum = NULL,
                         message = FALSE,
                         seed = NULL, ...) {
-  
+
   criteria <- match.arg(criteria, choices = c("V&VH", "LinPred", "CIndex_pooled", "CIndex_foldaverage"))
-  
+
   if (is.null(etas)) stop("etas must be provided.", call. = FALSE)
   etas <- sort(etas)
-  
+
   if (length(beta) != ncol(z)) {
     stop("Error: The dimension of external beta does not match the number of columns in z.")
   }
-  
+
   if (is.null(vcov)) {
     Q <- diag(ncol(z))
   } else {
@@ -96,8 +96,8 @@ cv.cox_MDTL <- function(z, delta, time, stratum = NULL,
     }
     Q <- vcov
   }
-  
-  
+
+
   ## Process stratum
   if (is.null(stratum)) {
     warning("Stratum not provided. Treating all data as one stratum.", call. = FALSE)
@@ -108,21 +108,21 @@ cv.cox_MDTL <- function(z, delta, time, stratum = NULL,
     }
     stratum <- match(stratum, unique(stratum))
   }
-  
-  
+
+
   ## Sort data by stratum and time
   time_order <- order(stratum, time)
   time <- as.numeric(time[time_order])
   stratum <- as.numeric(stratum[time_order])
   z <- as.matrix(z)[time_order, , drop = FALSE]
   delta <- as.numeric(delta[time_order])
-  
+
   n <- nrow(z)
   n_eta <- length(etas)
-  
+
   n.each_stratum_full <- as.numeric(table(stratum))
-  
-  
+
+
   # fit a full model:
   full_estimate <- cox_MDTL(z = z,
                             delta = delta,
@@ -136,39 +136,39 @@ cv.cox_MDTL <- function(z, delta, time, stratum = NULL,
                             message = FALSE,
                             data_sorted = TRUE)
   beta_full <- full_estimate$beta
-  
-  
+
+
   # do cross-validation
   if (!is.null(seed)) set.seed(seed)
   folds <- get_fold(nfolds = nfolds, delta = delta, stratum = stratum)
-  
+
   result_mat <- matrix(NA_real_, nrow = nfolds, ncol = n_eta)
   if (criteria == "LinPred") {
     cv_all_linpred <- matrix(NA, nrow = n, ncol = n_eta)
   } else if (criteria == "CIndex_pooled") {
     cv_pooled_cindex_array <- array(0, dim = c(nfolds, n_eta, 2))
   }
-  
+
   for (f in seq_len(nfolds)) {
     if (message) message(sprintf("CV fold %d/%d starts...", f, nfolds))
-    
+
     train_idx <- which(folds != f)
     test_idx  <- which(folds == f)
-    
+
     z_train <- z[train_idx, , drop = FALSE]
     delta_train <- delta[train_idx]
     time_train <- time[train_idx]
     stratum_train <- stratum[train_idx]
-    
+
     beta_initial <- rep(0, ncol(z))  # warm start for each fold
-    
-    
+
+
     ## ----- Cross-validation over eta sequence (internal model) -----
     if (message) {
       cat("Cross-validation over eta sequence:\n")
       pb <- txtProgressBar(min = 0, max = n_eta, style = 3, width = 30)
     }
-    
+
     for (i in seq_along(etas)) {
       eta <- etas[i]
       cox_estimate <- cox_MDTL(z = z_train,
@@ -183,23 +183,23 @@ cv.cox_MDTL <- function(z, delta, time, stratum = NULL,
                                message = FALSE,
                                data_sorted = TRUE,
                                beta_initial = beta_initial)
-      
+
       beta_train <- cox_estimate$beta
       beta_initial <- beta_train  # warm start
-      
+
       z_test <- z[test_idx, , drop = FALSE]
       delta_test <- delta[test_idx]
       time_test <- time[test_idx]
       LP_test <- as.matrix(z_test) %*% as.matrix(beta_train)
-      
+
       if (criteria == "V&VH") {
         LP_train <- as.matrix(z_train) %*% as.matrix(beta_train)
         LP_internal <- as.matrix(z) %*% as.matrix(beta_train)
         n.each_stratum_train <- as.numeric(table(stratum_train))
-        
+
         result_mat[f, i] <- pl_cal_theta(LP_internal, delta, n.each_stratum_full) -
           pl_cal_theta(LP_train, delta_train, n.each_stratum_train)
-        
+
       } else if (criteria == "LinPred") {
         cv_all_linpred[test_idx, i] <- LP_test
       } else {
@@ -220,7 +220,7 @@ cv.cox_MDTL <- function(z, delta, time, stratum = NULL,
     }
     if (message) close(pb)
   }
-  
+
   if (criteria == "V&VH") {
     result_vec <- colSums(result_mat, na.rm = TRUE)
   } else if (criteria == "LinPred") {
@@ -233,7 +233,7 @@ cv.cox_MDTL <- function(z, delta, time, stratum = NULL,
     denom <- apply(cv_pooled_cindex_array[, , 2], 2, sum, na.rm = TRUE)
     result_vec <- numer / denom
   }
-  
+
   ## Assemble internal results by eta
   results <- data.frame(eta = etas)
   if (criteria == "V&VH") {
@@ -249,14 +249,15 @@ cv.cox_MDTL <- function(z, delta, time, stratum = NULL,
     results$CIndex_foldaverage <- result_vec
     best_eta.idx <- which.max(results$CIndex_foldaverage)
   }
-  
+
   best_res <- list(best_eta = etas[best_eta.idx],
                    best_beta = beta_full[, best_eta.idx],
                    criteria = criteria)
-  
+
   structure(
     list(
       internal_stat = results,
+      beta_full = beta_full,
       best = best_res,
       criteria = criteria,
       nfolds = nfolds

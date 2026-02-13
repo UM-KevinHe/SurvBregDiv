@@ -1,6 +1,6 @@
 # SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence
 
-## Introduction
+## 1. Introduction
 
 Accurate prognostic modeling is a central goal in survival analysis. The
 rapid expansion of large-scale biobank initiatives—with rich genetic,
@@ -76,9 +76,27 @@ ridge, lasso, and elastic net penalties.
 This vignette introduces the core functionalities of `SurvBregDiv` and
 illustrates workflows for both low- and high-dimensional applications.
 
-## Installation
+## 2. Usage Tutorial
 
-You can install from CRAN:
+In this tutorial, we provide a practical guide to using our integration
+software, including model fitting, hyperparameter tuning, visualization,
+and etc.
+
+The software supports coefficient estimation for low-dimensional
+settings and variable selection for high-dimensional settings. We use
+the example datasets included in the software to illustrate how each
+approach can be applied.
+
+- For Cox proportional hazards model data integration, please refer to
+  Section [Cox Proportional Hazards Model Data Integration](#sec_cox)
+  for details;
+
+- For (nested) case-control designs, see Section [(Nested) Case-Control
+  Data Integration](#sec_cc) for details.
+
+### 2.1 Installation
+
+You can install the software from CRAN:
 
 ``` r
 install.packages("SurvBregDiv")
@@ -92,56 +110,161 @@ require(remotes)
 remotes::install_github("UM-KevinHe/SurvBregDiv", ref = "main")
 ```
 
-## Quick Start
+Additional options refer to
+[`help(install.packages)`](https://rdrr.io/r/utils/install.packages.html).
 
-This section provides a brief overview of the main functions using
-example datasets included in the package.
-
-First, load the package:
+We load the package by:
 
 ``` r
 library(SurvBregDiv)
 ```
 
-### Full-Cohort Cox Model with Bregman Divergence Integration
+### 2.2 Cox Proportional hazards model
 
-#### Low-Dimensional Integration
+Depending on the type of external data available, the framework supports
+three broad methodological settings, each implemented through a
+corresponding set of functions:
 
-The low-dimensional Bregman-divergence–integrated Cox model is intended
-for settings where the number of predictors is modest. External
-information—either in the form of external Cox coefficients (`beta`) or
-pre-computed external risk scores (`RS`)—is incorporated through a
-Bregman-divergence penalization mechanism.
+1.  **Individual-level external data available.** When individual-level
+    external data are accessible (e.g., for time-to-event outcomes, the
+    user has covariates, survival outcomes, and follow-up times from an
+    external cohort), the software provides the function such as
+    [`cox_indi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_indi.md)
+    and related downstream utilities. These functions implement data
+    integration through a weighted pseudo-likelihood framework (Wang and
+    Zidek 2005; Gao and Carroll 2017). Details can be found in
+    [Individual-Level External Data Integration](#sec_indi).
 
-The tuning parameter `eta` controls the strength of information
-borrowing:
+2.  **Only summary-level regression estimates available.** If, due to
+    practical or regulatory constraints, the external source can provide
+    only summary-level estimated regression coefficients
+    $`\widetilde{\boldsymbol{\beta}}`$, the user can perform data
+    integration via the Kullback–Leibler divergence. Details can be
+    found in Section [Kullback–Leibler Divergence Data
+    Integration](#sec_coxkl).
 
-- `eta = 0` reduces to the standard Cox model (no external borrowing),
-  and  
-- larger values of `eta` increasingly shrink the fitted coefficients
+3.  **Regression estimates plus curvature information available.** If,
+    in addition to estimated external regression coefficients, the user
+    can also provide a positive semidefinite matrix $`\mathbf{A}`$
+    summarizing the curvature of the external objective function (e.g.,
+    an information matrix, a variance–covariance matrix, or variance
+    information only), the user can perform data integration via the
+    quadratic Mahalanobis distance. Details can be found in Section
+    [Mahalanobis Distance Data Integration](#sec_coxmaha).
+
+#### 2.2.1 Individual-Level External Data Integration
+
+When individual-level data are available for both the internal and
+external cohorts, the function
+[`cox_indi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_indi.md)
+fits a Cox proportional hazards model that integrates information from
+both datasets via a weighted pseudo-likelihood approach. To use this
+integration approach, the user must provide at least the covariate
+matrices, event indicators, and event time for both internal and
+external cohort.
+
+We provide a toy example to illustrate the use of the software based on
+the built-in dataset `ExampleData_indi`. This dataset contains example
+time-to-event data from both internal and external sources, including
+the covariate matrices, stratum information, event indicators, and event
+times.
+
+``` r
+data(ExampleData_indi)
+
+z_int       <- ExampleData_indi$internal$z
+delta_int   <- ExampleData_indi$internal$status
+time_int    <- ExampleData_indi$internal$time
+stratum_int <- ExampleData_indi$internal$stratum
+
+z_ext       <- ExampleData_indi$external$z
+delta_ext   <- ExampleData_indi$external$status
+time_ext    <- ExampleData_indi$external$time
+stratum_ext <- ExampleData_indi$external$stratum
+```
+
+The function
+[`cox_indi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_indi.md)
+fits a sequence of weighted stratified Cox models that integrate the
+internal and external datasets through a list of integration weights
+$`\eta`$, which governs the degree of information borrowing (via
+function argument `etas`):
+
+- $`\eta`$ = 0 corresponds to the standard Cox model with no external
+  contribution, and  
+- larger values of $`\eta`$ increasingly pull the estimated coefficients
   toward the external information.
 
-Two specific divergence choices are supported:
+The user should rely on prior knowledge or problem-specific
+considerations to determine an appropriate range of $`\eta`$’s.
 
-- **Kullback–Leibler (KL) divergence**, implemented via
-  [`coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl.md),
-  and  
-- **squared Mahalanobis distance**, implemented via
-  [`cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL.md).
+``` r
+eta_list <- generate_eta(method = "exponential", n = 50, max_eta = 10000)
 
-For both formulations, the optimal `eta` can be selected through
-cross-validation using
-[`cv.coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl.md)
-or
-[`cv.cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL.md),
-respectively.
+fit.cox_indi <- cox_indi(
+  z_int = z_int,
+  delta_int = delta_int,
+  time_int = time_int,
+  stratum_int = stratum_int,
+  z_ext = z_ext,
+  delta_ext = delta_ext,
+  time_ext = time_ext,
+  stratum_ext = stratum_ext,
+  etas = eta_list
+)
+```
 
-##### Low-dimensional Example Dataset:
+For hyperparameter tuning of $`\eta`$, we aim to select the value of
+$`\eta`$ that yields the best predictive performance. We adopt
+cross-validation and consider four criteria: two based on Harrell’s
+C-index (Harrell et al. 1982)—`CIndex_pooled` and
+`CIndex_foldaverage`—and two loss-based criteria—`LinPred` and `V&VH`.
+For details, please refer to *Appendix: CV Criteria*.
 
-We illustrate the workflow using the built-in low-dimensional simulated
-dataset `ExampleData_lowdim`, which consists of a training set (100
-samples) and a test set (2000 samples) with 6 predictors. We first
-extract the training components:
+We provide an example illustrating the use of the cross-validation
+function
+[`cv.cox_indi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_indi.md)
+under the `V&VH` criterion.
+
+``` r
+cvfit.cox_indi <- cv.cox_indi(
+  z_int = z_int,
+  delta_int = delta_int,
+  time_int = time_int,
+  stratum_int = stratum_int,
+  z_ext = z_ext,
+  delta_ext = delta_ext,
+  time_ext = time_ext,
+  stratum_ext = stratum_ext,
+  etas = eta_list,
+  nfolds = 5,
+  criteria = "V&VH"
+)
+```
+
+#### 2.2.2 Kullback–Leibler Divergence Data Integration
+
+Due to practical or regulatory constraints, only summary-level
+information may be available from the external source, typically in the
+form of estimated regression coefficients
+$`\widetilde{\boldsymbol{\beta}}`$ or an external risk score
+$`Z^{\top}\widetilde{\boldsymbol{\beta}}`$. In such cases, data
+integration can be carried out through a Kullback–Leibler divergence
+formulation. The minimal input required for this approach is
+$`\widetilde{\boldsymbol{\beta}}`$, corresponding to the coefficient
+estimates obtained from the external model, or the external risk score.
+
+We present the usage of the functions for
+[low-dimensional](#sec_coxkl_low) and
+[high-dimensional](#sec_coxkl_high) settings separately.
+
+##### Low-Dimensional Integration
+
+We begin with **low-dimensional** settings, where the number of
+predictors is modest. Similarly, we provide a built-in low-dimensional
+simulated dataset `ExampleData_lowdim`, which consists of a training set
+(100 samples) and a test set (2000 samples) with six predictors. We
+first extract the training components:
 
 ``` r
 data(ExampleData_lowdim)
@@ -155,28 +278,28 @@ time   <- train$time
 strat  <- train$stratum
 ```
 
-and externally derived coefficients beta_external:
+The corresponding built-in external regression coefficients
+$`\widetilde{\boldsymbol{\beta}}`$ can be obtained as follows:
 
 ``` r
 beta_ext <- ExampleData_lowdim$beta_external_fair
 ```
 
-We generate a sequence of tuning parameter `eta` values via the internal
-utility
-[`generate_eta()`](https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.md)
-and fit the integrated model across this grid:
+To fit the KL divergence–based integrated model, we first generate a
+suitable range of integration weights $`\eta`$ using the function
+[`generate_eta()`](https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.md).
+The user should rely on prior knowledge or problem-specific
+considerations to determine an appropriate range. We then use the
+function
+[`coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl.md)
+to fit the model. The external regression coefficient
+$`\widetilde{\boldsymbol{\beta}}`$ is supplied to the function through
+the argument `beta =`.
 
 ``` r
 eta_list <- generate_eta(method = "exponential", n = 50, max_eta = 10)
-```
 
-##### Model Fitting:
-
-For the KL divergence–based integrated model, we use the function
-[`coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl.md):
-
-``` r
-coxkl_est <- coxkl(
+fit.coxkl <- coxkl(
   z = z,
   delta = delta,
   time = time,
@@ -186,33 +309,13 @@ coxkl_est <- coxkl(
 )
 ```
 
-For the squared Mahalanobis distance–based integrated model, we use
-[`cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL.md):
-
-``` r
-cox_MDTL_est <- cox_MDTL(
-  z = z,
-  delta = delta,
-  time = time,
-  stratum = strat,
-  beta = beta_ext,
-  vcov = NULL,
-  etas = eta_list
-)
-```
-
-Note that the squared Mahalanobis distance formulation requires a
-user-specified weighting matrix via the argument `vcov`. In standard
-Mahalanobis distance settings, is taken to be the inverse covariance
-matrix of the coefficients. If `vcov = NULL`, the function defaults to
-the identity matrix.
-
-Users may instead supply an external risk score vector:
+Alternatively, instead of providing $`\widetilde{\boldsymbol{\beta}}`$,
+users may supply an external risk score vector via the argument `RS =`:
 
 ``` r
 RS_ext <- as.matrix(z) %*% as.matrix(beta_ext)
 
-coxkl_est.RS <- coxkl(
+fit.coxkl.RS <- coxkl(
   z = z,
   delta = delta,
   time = time,
@@ -222,41 +325,17 @@ coxkl_est.RS <- coxkl(
 )
 ```
 
-For datasets containing tied event times, users may apply the
-[`coxkl_ties()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ties.md)
-function, which extends integrated Cox model to handle ties. The
-following example illustrates the use of the Breslow method for tie
-handling:
+The function
+[`cv.coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl.md)
+performs $`K`$-fold cross-validation (default $`K = 5`$) to select the
+integration parameter in the KL-integrated Cox model. We consider four
+criteria: two based on Harrell’s C-index (Harrell et al.
+1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two loss-based
+criteria—`LinPred` and `V&VH`. For details, please refer to *Appendix:
+CV Criteria*. Below is an example using the default `"V&VH"` criterion:
 
 ``` r
-time_ties <- round(time, 2)   # Rounding time introduces ties for demonstration
-
-coxkl_ties_est <- coxkl_ties(
-  z = z,
-  delta = delta,
-  time = time_ties,
-  stratum = strat,
-  beta = beta_ext,
-  etas = eta_list,
-  ties = "breslow"
-)
-```
-
-##### Hyperparameter Tuning via Cross-Validation:
-
-The function `cv.coxkl` and `cv.cox_MDTL` performs K-fold (default 5)
-cross-validation to choose the integration parameter. It supports four
-criteria:
-
-- `"V&VH"` — V&VH loss  
-- `"LinPred"` — predicted partial deviance  
-- `"CIndex_pooled"` — pooled comparable pairs  
-- `"CIndex_foldaverage"` — per-fold stratified C-index
-
-Below is an example using the default `"V&VH"` criterion:
-
-``` r
-cv.coxkl_est <- cv.coxkl(
+cvfit.coxkl <- cv.coxkl(
   z = z,
   delta = delta,
   time = time,
@@ -268,98 +347,85 @@ cv.coxkl_est <- cv.coxkl(
   seed = 1)
 ```
 
-##### Visualization:
-
-Objects of model fittings (i.e. from either `coxkl` or `cox_MDTL`) from
-can be visualized using the S3 plotting method
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html).  
-This function displays how model performance changes across the
-`eta`–sequence used during fitting.
-
-Two types of performance criteria are supported:
-
-- `"loss"`  
-  (default; −2 × partial log-likelihood, normalized by sample size)
-
-- `"CIndex"`  
-  (stratified concordance index)
-
-Users may directly call the
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html) method to
-visualize the model’s fitted performance on the training data without
-providing additional test data. If a test set is supplied, performance
-metrics are computed using the test set instead:
+The cross-validated performance curve from hyperparameter tuning
+functions
+[`cv.coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl.md)
+can be visualized directly using
+[`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md):
 
 ``` r
-plot(
-  cox_MDTL_est,
-  test_z       = test$z,
-  test_time    = test$time,
-  test_delta   = test$status,
-  test_stratum = test$stratum,
-  criteria     = "loss"
-) 
+cv.plot(cvfit.coxkl)
 ```
 
 ![Plot generated in survkl
 vignette](SurvBregDiv_files/figure-html/unnamed-chunk-13-1.png)
 
-The cross-validated performance curve from hyperparameter tuning
-functions `cv.coxkl` or `cv.cox_MDTL` can be visualized directly using
-[`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md):
-
-``` r
-cv.plot(cv.coxkl_est)
-```
-
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-14-1.png)
-
 - The solid purple curve displays the cross-validated loss across
-  different values of `eta`.
-- The green dotted horizontal line marks the internal baseline at `eta`
-  = 0, representing the model that does not incorporate external
-  information.
-- The vertical dashed orange line indicates the optimal `eta` value,
+  different values of $`\eta`$.
+- The green dotted horizontal line marks the internal baseline at
+  $`\eta`$ = 0, representing the model that does not incorporate
+  external information.
+- The vertical dashed orange line indicates the optimal $`\eta`$ value,
   where the cross-validated loss is minimized.
 
 A comparison between the purple curve and the green baseline shows
 whether borrowing external information improves prediction performance.
 Whenever the purple curve falls below the green line, using external
-information (`eta` \> 0) yields better predictive accuracy than relying
-solely on the internal model.
+information ($`\eta`$ \> 0) yields better predictive accuracy than
+relying solely on the internal model.
 
-#### High-Dimensional Integration
+For datasets containing **tied** event times, users can apply the
+[`coxkl_ties()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ties.md)
+and
+[`cv.coxkl_ties()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ties.md)
+function, which extends the KL integrated Cox model to explicitly
+accommodate ties. The function allows users to choose between the
+“breslow” (Breslow 1974) and “exact” (Cox 1972) methods for tie
+handling. The Breslow method provides a computationally efficient
+approximation and is generally suitable when the number of tied events
+is moderate, whereas the exact method yields more accurate inference in
+the presence of extensive ties at the cost of increased computational
+burden. The following example demonstrates the use of the Breslow
+method.
+
+``` r
+time_ties <- round(time, 2)   # Rounding time introduces ties for demonstration
+
+fit.coxkl.ties <- coxkl_ties(
+  z = z,
+  delta = delta,
+  time = time_ties,
+  stratum = strat,
+  beta = beta_ext,
+  etas = eta_list,
+  ties = "breslow"
+)
+```
+
+##### High-Dimensional Integration
 
 In high-dimensional regimes—such as when the number of predictors is
 comparable to or exceeds the sample size—the `SurvBregDiv` package
-extends Bregman-divergence–integrated Cox modeling with regularization.
-Similar to the low-dimensional setting, both **Kullback–Leibler (KL)
-divergence** and **squared Mahalanobis distance** are supported as
-specific Bregman choices for external information integration.
+extends KL divergence–integrated Cox modeling with regularization.
 
 Two families of penalties are implemented:
 
-- **Ridge penalty (L2)**, via `coxkl_ridge` and `cox_MDTL_ridge`, which
-  shrinks coefficients toward zero while yielding dense solutions.
-- **Elastic net penalty (mix of L1 and L2)**, via `coxkl_enet` and
-  `cox_MDTL_enet`, where the **LASSO** corresponds to the special case
-  with mixing parameter set to 1.
+- **Ridge penalty ($`\ell_2`$)**, via
+  [`coxkl_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ridge.md)
+  and related downstream functions, which shrinks coefficients toward
+  zero while yielding dense solutions.
+- **LASSO penalty ($`\ell_1`$)** and **Elastic net penalty (a mixture of
+  $`\ell_1`$ and $`\ell_2`$)**, via
+  [`coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.md)
+  and related downstream functions, to enable sparse variable selection.
 
-These models combine:
-
-- an **integration penalty**, controlled by `eta`, to borrow information
-  from external sources (risk scores `RS` or coefficients `beta`), and  
-- a **regularization penalty** (ridge or elastic net) to stabilize
-  estimation under high-dimensional designs.
-
-In what follows, we introduce the shared high-dimensional example
-dataset and demonstrate the usage of the penalized KL divergence model.
-
-*Note: The squared Mahalanobis distance counterparts follow an identical
-workflow.*
-
-##### High-dimensional Example Dataset:
+In addition to the integration weight $`\eta`$, which determines the
+extent of information borrowed from external sources, the
+high-dimensional functions involve a **regularization parameter**
+$`\lambda \ge 0`$ that governs the strength of regularization. The
+parameter $`\alpha \in [0,1]`$ is a mixing coefficient that controls the
+relative contribution of the $`\ell_1`$ (LASSO) and $`\ell_2`$ (Ridge)
+components.
 
 The built-in high-dimensional simulated dataset `ExampleData_highdim`
 contains a training set (200 samples) and a test set (2000 samples). The
@@ -381,24 +447,20 @@ strat_hd  <- train_hd$stratum
 beta_external_hd <- ExampleData_highdim$beta_external
 ```
 
-##### Model Fitting:
-
-###### Ridge-Penalized Integrated Cox Model
-
 The function
 [`coxkl_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ridge.md)
-fits a KL-integrated Cox model with a ridge (L2) penalty on all
+fits a KL-integrated Cox model with a Ridge (L2) penalty on all
 predictors. External information is incorporated through a KL-based
-integration term weighted by `eta` (a user-specified scalar), while
+integration term weighted by $`\eta`$ (a user-specified scalar), while
 regularization is imposed through a sequence of tuning parameters
-`lambda`. If `lambda` is not provided, the function automatically
+$`\lambda`$. If $`\lambda`$ is not provided, the function automatically
 generates a decreasing lambda path.
 
 We begin by fitting a KL–ridge model for a fixed integration weight
-`eta` using an automatically generated lambda sequence:
+$`\eta`$ using an automatically generated lambda sequence:
 
 ``` r
-model_ridge <- coxkl_ridge(
+fit.coxkl_ridge <- coxkl_ridge(
   z        = z_hd,
   delta    = delta_hd,
   time     = time_hd,
@@ -408,38 +470,29 @@ model_ridge <- coxkl_ridge(
 )
 ```
 
-The fitted object stores, for each value of `lambda`:
+The fitted object stores, for each value of $`\lambda`$:
 
-- `model_ridge$lambda` — the sequence of lambda values (in decreasing
-  order),
-- `model_ridge$beta` — estimated coefficients (one column per lambda),
-- `model_ridge$linear.predictors` — linear predictors for all
-  observations across the lambda path,
-- `model_ridge$likelihood` — partial log-likelihood along the lambda
-  path,
-- `model_ridge$data` — the data used for fitting.
-
-###### Elastic-Net / LASSO-Penalized Integrated Cox Model
+- `$lambda` — the sequence of lambda values (in decreasing order),
+- `$beta` — estimated coefficients (one column per lambda),
+- `$linear.predictors` — linear predictors for all observations across
+  the lambda path,
+- `$likelihood` — partial log-likelihood along the lambda path,
+- `$data` — the data used for fitting.
 
 The function
 [`coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.md)
 fits a KL-integrated Cox model with an elastic-net penalty, controlled
 by the mixing parameter `alpha`. When `alpha = 1`, the penalty reduces
 to *LASSO*, introducing coefficient sparsity in addition to KL-based
-integration of external information.
-
-External knowledge can be incorporated either through external
-coefficients (`beta`) or through an externally computed risk score
-(`RS`). The integration parameter `eta` determines how strongly the
-model borrows from this external information, while the penalty
-parameter `lambda` controls sparsity. If `lambda` is not provided, the
+integration of external information. Similar, the penalty parameter
+$`\lambda`$ controls sparsity. If $`\lambda`$ is not provided, the
 function automatically generates a decreasing lambda sequence.
 
 Below, we illustrate the workflow using the *LASSO* special case
 (`alpha = 1`) with an automatically generated lambda path:
 
 ``` r
-model_enet <- coxkl_enet(
+fit.coxkl_LASSO <- coxkl_enet(
   z        = z_hd,
   delta    = delta_hd,
   time     = time_hd,
@@ -452,46 +505,74 @@ model_enet <- coxkl_enet(
 
 The fitted object stores, for each lambda value:
 
-- `model_enet$lambda` — the lambda sequence (in decreasing order),
-- `model_enet$beta` — estimated coefficients (one column per lambda),
-- `model_enet$likelihood` — partial log-likelihood along the lambda
-  path,
-- `model_enet$data` — the data used for fitting.
+- `$lambda` — the lambda sequence (in decreasing order),
+- `$beta` — estimated coefficients (one column per lambda),
+- `$likelihood` — partial log-likelihood along the lambda path,
+- `$data` — the data used for fitting.
 
-##### Hyperparameter Tuning via Cross-Validation
+Objects from
+[`coxkl_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ridge.md)
+or
+[`coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.md)
+functions can be visualized using the S3 plotting method
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html):
 
-For penalized integrated models, the functions
+This plots (at given $`\eta`$):
+
+- Loss or C-index versus the penalty parameter $`\lambda`$,
+- x-axis on a reversed log10 scale (larger penalties on the left,
+  smaller penalties on the right),
+- y-axis labeled as loss or C-index,.
+- A vertical dashed orange line marks the optimal value of λ, where the
+  loss reaches its minimum on the evaluated grid.
+
+``` r
+plot(
+  fit.coxkl_LASSO,
+  test_z       = test_hd$z,
+  test_time    = test_hd$time,
+  test_delta   = test_hd$status,
+  test_stratum = test_hd$stratum,
+  criteria     = "loss"
+)
+```
+
+![Plot generated in survkl
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-18-1.png)
+
+For penalized KL-integrated models, the functions
 [`cv.coxkl_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ridge.md)
 and
 [`cv.coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_enet.md)
-perform K-fold cross-validation to tune the integration parameter `eta`,
-while internally scanning over a `lambda` path for each candidate `eta`.
-For each value of `eta`, the cross-validation procedure:
+perform K-fold cross-validation to tune the integration parameter
+$`\eta`$, while internally scanning over a $`\lambda`$ path for each
+candidate $`\eta`$. For each value of $`\eta`$, the cross-validation
+procedure:
 
-- evaluates a sequence of ridge or elastic-net penalties `lambda`,
+- evaluates a sequence of ridge or elastic-net penalties $`\lambda`$,
 - computes the chosen cross-validation criterion on the held-out folds,
-- selects the best `lambda` for that `eta`,
+- selects the best $`\lambda`$ for that $`\eta`$,
 - aggregates the performance across folds into summary tables.
 
-The following criteria are supported:
+The supported criteria also include two based on Harrell’s C-index
+(Harrell et al. 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two
+loss-based criteria—`LinPred` and `V&VH`. For details, please refer to
+*Appendix: CV Criteria*.
 
-- `"V&VH"` — V&VH loss (reported as `Loss = -2 * score`),
-- `"LinPred"` — predicted partial deviance,
-- `"CIndex_pooled"` — pooled C-index across all folds,
-- `"CIndex_foldaverage"` — fold-averaged C-index.
-
-Below we demonstrate tuning `eta` using 5-fold cross-validation and the
-`"V&VH"` criterion for the LASSO-penalized integrated model
-(`alpha = 1`). (For ridge, use
+Below we demonstrate tuning $`\eta`$ using 5-fold cross-validation and
+the `V&VH` criterion for the LASSO-penalized integrated model
+(`alpha = 1`). The range of integration weights $`\eta`$ can be
+generated by using the function
+[`generate_eta()`](https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.md).
+The user should rely on prior knowledge or problem-specific
+considerations to determine an appropriate range. (For ridge, use
 [`cv.coxkl_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ridge.md)
 analogously.)
 
 ``` r
-eta_grid_hd <- generate_eta(method = "exponential",
-                            n = 50,
-                            max_eta = 100)
+eta_grid_hd <- generate_eta(method = "exponential", n = 50, max_eta = 100)
 
-cv_enet_hd <- cv.coxkl_enet(
+cvfit.coxkl_LASSO <- cv.coxkl_enet(
   z = z_hd,
   delta = delta_hd,
   time = time_hd,
@@ -505,132 +586,98 @@ cv_enet_hd <- cv.coxkl_enet(
 )
 ```
 
-The best `lambda` for each `eta` (according to the chosen criterion) is
-provided by:
+The best $`\lambda`$ for each $`\eta`$ (according to the chosen
+criterion) is provided by:
 
 ``` r
-cv_enet_hd$integrated_stat.best_per_eta
+head(cvfit.coxkl_LASSO$integrated_stat.best_per_eta)
 ```
 
-    ##             eta       lambda     Loss
-    ## 1    0.00000000 1.019360e-01 2.842157
-    ## 2    0.09953651 9.773006e-02 2.840152
-    ## 3    0.20888146 9.390799e-02 2.838419
-    ## 4    0.32900138 2.575599e-02 2.829181
-    ## 5    0.46095806 2.161908e-02 2.817568
-    ## 6    0.60591790 1.818471e-02 2.806310
-    ## 7    0.76516225 1.583720e-02 2.795556
-    ## 8    0.94009872 1.487692e-02 2.786297
-    ## 9    1.13227362 1.302389e-02 2.778563
-    ## 10   1.34338567 1.139452e-02 2.772374
-    ## 11   1.57530093 1.068340e-02 2.767340
-    ## 12   1.83006939 9.336846e-03 2.763147
-    ## 13   2.10994303 8.156289e-03 2.759722
-    ## 14   2.41739573 7.636767e-03 2.756923
-    ## 15   2.75514517 6.665955e-03 2.754581
-    ## 16   3.12617683 1.168692e-03 2.752477
-    ## 17   3.53377037 8.866867e-04 2.747700
-    ## 18   3.98152865 1.553666e-04 2.743494
-    ## 19   4.47340953 8.912293e-05 2.739607
-    ## 20   5.01376093 8.931986e-05 2.736818
-    ## 21   5.60735916 8.949908e-05 2.734883
-    ## 22   6.25945124 8.966217e-05 2.733633
-    ## 23   6.97580122 8.981060e-05 2.732915
-    ## 24   7.76274115 8.994568e-05 2.732588
-    ## 25   8.62722703 9.006861e-05 2.732567
-    ## 26   9.57690034 9.018050e-05 2.732783
-    ## 27  10.62015555 9.028233e-05 2.733161
-    ## 28  11.76621431 9.037501e-05 2.733665
-    ## 29  13.02520701 9.045937e-05 2.734254
-    ## 30  14.40826229 9.053614e-05 2.734904
-    ## 31  15.92760542 9.060603e-05 2.735591
-    ## 32  17.59666636 9.066963e-05 2.736292
-    ## 33  19.43019846 9.072753e-05 2.736987
-    ## 34  21.44440891 9.078022e-05 2.737676
-    ## 35  23.65710197 9.082819e-05 2.738336
-    ## 36  26.08783632 9.087185e-05 2.739012
-    ## 37  28.75809801 9.091159e-05 2.739655
-    ## 38  31.69149033 9.094776e-05 2.740275
-    ## 39  34.91394249 9.098069e-05 2.740907
-    ## 40  38.45393876 9.101066e-05 2.741567
-    ## 41  42.34277030 9.103794e-05 2.742080
-    ## 42  46.61481175 9.106278e-05 2.742553
-    ## 43  51.30782504 9.108538e-05 2.742993
-    ## 44  56.46329322 9.110596e-05 2.743404
-    ## 45  62.12678712 9.112469e-05 2.743741
-    ## 46  68.34836818 9.114174e-05 2.744012
-    ## 47  75.18303094 9.115726e-05 2.744249
-    ## 48  82.69118918 9.117139e-05 2.744425
-    ## 49  90.93920990 9.118424e-05 2.744550
-    ## 50 100.00000000 9.119595e-05 2.744670
+    ##          eta     lambda     Loss
+    ## 1 0.00000000 0.10193604 2.842157
+    ## 2 0.09953651 0.09773006 2.840152
+    ## 3 0.20888146 0.09390799 2.838419
+    ## 4 0.32900138 0.02575599 2.829181
+    ## 5 0.46095806 0.02161908 2.817568
+    ## 6 0.60591790 0.01818471 2.806310
 
-##### Visualization:
-
-Objects from `coxkl_ridge` or `coxkl_enet` can be visualized using the
-S3 plotting method
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html):
-
-This plots (at given `eta`):
-
-- Loss or C-index versus the penalty parameter `lambda`,
-- x-axis on a reversed log10 scale (larger penalties on the left,
-  smaller penalties on the right),
-- y-axis labeled as loss or C-index,.
-- A vertical dashed orange line marks the optimal value of λ, where the
-  loss reaches its minimum on the evaluated grid.
+The helper function
+[`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md)
+can be used to visualize performance versus $`\eta`$:
 
 ``` r
-plot(
-  model_enet,
-  test_z       = test_hd$z,
-  test_time    = test_hd$time,
-  test_delta   = test_hd$status,
-  test_stratum = test_hd$stratum,
-  criteria     = "loss"
+cv.plot(cvfit.coxkl_LASSO)
+```
+
+![Plot generated in survkl
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-21-1.png)
+
+The resulting plot displays:
+
+- a purple curve showing the cross-validated performance across the
+  $`\eta`$ sequence (loss or C-index),
+- a green dotted horizontal line indicating the internal baseline at
+  $`\eta`$ = 0,
+- a green point marking the baseline performance,
+- and a vertical dashed orange line denoting the optimal $`\eta`$, where
+  the cross-validated loss attains its minimum.
+
+##### Variable Importance and Stability Selection
+
+For high-dimensional integrated models, users are often interested in
+identifying predictors that are selected in a stable and reproducible
+manner under regularization. The function
+[`variable_importance()`](https://um-kevinhe.github.io/SurvBregDiv/reference/variable_importance.md)
+assesses variable importance using a bootstrap-based refitting strategy
+applied to the integrated LASSO or elastic-net models fitted by
+`cv.coxkl_enet`. Specifically, the model is repeatedly refit on
+bootstrap resamples of the data, and a predictor is recorded as selected
+if its estimated coefficient is nonzero in the cross-validated optimal
+model. The resulting importance score for each variable is defined as
+its selection frequency across bootstrap replications.
+
+``` r
+imp.coxkl <- variable_importance(
+  z = z_hd,
+  delta = delta_hd,
+  time = time_hd,
+  stratum = strat_hd,
+  beta = beta_external_hd,
+  etas = eta_grid_hd,  
+  B = 50
 )
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-20-1.png)
-
-As with low-dimensional models, the helper function
-[`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md)
-can be used to visualize performance versus `eta`:
+After computing variable importance based on bootstrap selection
+frequencies, users can further call the generic
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) method to
+visualize the relative importance of predictors. The
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) method displays
+selection frequencies ordered from highest to lowest, allowing users to
+easily identify variables that are most consistently selected across
+bootstrap replications. Optional arguments such as a selection-frequency
+threshold and the number of top variables to display can be used to
+focus the visualization on the most stable predictors.
 
 ``` r
-cv.plot(cv_enet_hd)
+plot(imp.coxkl, threshold = 0.6, top = 20)
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-21-1.png) The
-resulting plot displays:
-
-- a purple curve showing the cross-validated performance across the
-  `eta` sequence (loss or C-index),
-- a green dotted horizontal line indicating the internal baseline at
-  `eta = 0`,
-- a green point marking the baseline performance,
-- and a vertical dashed orange line denoting the optimal `eta`, where
-  the cross-validated loss attains its minimum.
-
-##### Stability Selection for High-Dimensional Models
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-23-1.png)
 
 Classical LASSO tuned via cross-validation performs well for prediction,
 but it is often unstable for variable selection: small perturbations of
 the data or changes in cross-validation splits may lead to different
 selected subsets, particularly in high-dimensional or correlated
-settings. Stability selection provides a complementary approach that
+settings. *Stability selection* provides a complementary approach that
 emphasizes reproducibility by repeatedly perturbing the data and
 recording how frequently each variable is selected across subsamples.
 
 The functions
 [`coxkl_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.StabSelect.md)
-and
-[`cox_MDTL_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.StabSelect.md)
 extend the cross-validated elastic-net procedures
-([`cv.coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_enet.md)
-and
-[`cv.cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_enet.md))
+([`cv.coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_enet.md))
 by repeatedly fitting the integrated elastic-net model on multiple
 subsamples (controlled by the parameter `B`). For each subsample, the
 model is fit using its own cross-validated tuning parameters, and the
@@ -648,34 +695,25 @@ coxkl.StabSelect <- coxkl_enet.StabSelect(
   beta = beta_external_hd,
   etas = eta_list,
   cv.criteria = "CIndex_pooled",
-  B = 20
+  B = 50
 )
 ```
 
-`ox_MDTL_enet.StabSelect` follows an identical workflow. Objects from
-`coxkkl_enet.StabSelect or`ccox_MDTL_enet.StabSelect can be visualized
-using the S3 plotting method
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html):, 用户需要指定
-a selection frequency threshold (between 0 and 1). Variables whose
+Objects returned by `coxkl_enet.StabSelect` can be visualized using the
+S3 plotting method
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html). Users must
+specify a selection frequency threshold between 0 and 1: variables whose
 selection frequency exceeds this threshold are highlighted in the plot,
-while others are shown in a muted color. The x-axis represents the
-penalty parameter `lambda` on a reversed log10 scale, and the y-axis
-shows the selection frequency:
+while the remaining variables are displayed in a muted color. The x-axis
+corresponds to the penalty parameter $`\lambda`$ on a reversed log10
+scale, and the y-axis shows the selection frequency.
 
 ``` r
-plot(coxkl.StabSelect, threshold = 0.6) 
+plot(coxkl.StabSelect, threshold = 0.7) 
 ```
 
-    ## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-    ## ℹ Please use `linewidth` instead.
-    ## ℹ The deprecated feature was likely used in the SurvBregDiv package.
-    ##   Please report the issue to the authors.
-    ## This warning is displayed once per session.
-    ## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
-    ## generated.
-
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-23-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-25-1.png)
 
 ##### Bagging for High-Dimensional Models
 
@@ -697,8 +735,6 @@ model.
 
 The functions
 [`coxkl_enet_bagging()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet_bagging.md)
-and
-[`cox_MDTL_enet_bagging()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet_bagging.md)
 implement this ensemble strategy. The following example demonstrates how
 to apply
 [`coxkl_enet_bagging()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet_bagging.md)
@@ -731,18 +767,345 @@ linear predictor `z_new %*% bagging.coxkl$best_beta`, while
 `bagging.coxkl$all_betas` can be inspected to assess the variability of
 the bootstrap ensemble.
 
-### Nested Case-Control (NCC) Design with Bregman Divergence Integration
+##### Multi-Source Integration
+
+In many applications, multiple sources of external information may be
+available, each providing a distinct set of external coefficient
+estimates derived from different studies, populations, or modeling
+strategies. Instead of relying on a single external source, it can be
+beneficial to integrate information from multiple sources to obtain a
+more robust and less source-specific estimate.
+
+The function
+[`coxkl_enet.multi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.multi.md)
+fits KL-integrated Cox elastic-net models using multiple external
+coefficient vectors. The model is fitted on the full dataset once for
+each element in beta_list, and the resulting coefficient estimates are
+combined across sources (e.g., by averaging) to obtain a single
+integrated estimate.
+
+``` r
+beta_list <- list(
+  ExampleData_highdim$beta_external,
+  ExampleData_highdim$beta_external.multi1,
+  ExampleData_highdim$beta_external.multi2,
+  ExampleData_highdim$beta_external.multi3,
+  ExampleData_highdim$beta_external.multi4,
+  ExampleData_highdim$beta_external.multi5
+)
+
+multi.out <- coxkl_enet.multi(
+  z = z_hd,
+  delta = delta_hd,
+  time = time_hd,
+  stratum = strat_hd,
+  beta_list = beta_list,
+  etas = eta_list,
+  combine = "mean"
+)
+```
+
+The output is an object contains the combined coefficient estimate as
+well as the individual coefficient vectors obtained from each external
+source. In particular, `best_beta` stores the aggregated coefficient
+vector, while `all_betas` contains the coefficient estimates from each
+fitted model.
+
+#### 2.2.3 Mahalanobis Distance Data Integration
+
+Due to practical or regulatory constraints, only summary-level
+information may be available from the external source. Compared with
+[Kullback–Leibler Divergence Data Integration](#sec_coxkl), the
+Mahalanobis distance approach is applicable when the user can also
+provide a positive semidefinite matrix $`\mathbf{A}`$ summarizing the
+curvature of the external objective function (e.g., an information
+matrix, a variance–covariance matrix, or variance information only). The
+minimal input required for this approach is
+$`\widetilde{\boldsymbol{\beta}}`$ and $`\mathbf{A}`$. If $`\mathbf{A}`$
+is not supplied, the function defaults to using the identity matrix,
+which reduces the Mahalanobis distance penalty to the squared Euclidean
+distance.
+
+We present the usage of the functions for
+[low-dimensional](#sec_coxMD_low) and
+[high-dimensional](#sec_coxMD_high) settings separately.
+
+##### Low-Dimensional Integration
+
+We begin with **low-dimensional** settings, where the number of
+predictors is modest. The description of the built-in low-dimensional
+simulated dataset `ExampleData_lowdim`, as well as the example external
+$`\widetilde{\boldsymbol{\beta}}`$, is the same as in the [KL divergence
+section](#sec_coxkl_low).
+
+To fit the Mahalanobis distance–based integrated model, we first
+generate a suitable range of integration weights $`\eta`$ using the
+function
+[`generate_eta()`](https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.md).
+The user should rely on prior knowledge or problem-specific
+considerations to determine an appropriate range. We then use the
+function
+[`cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL.md)
+to fit the model. The external regression coefficient
+$`\widetilde{\boldsymbol{\beta}}`$ is supplied to the function through
+the argument `beta =`, and the external curvature matrix $`\mathbf{A}`$
+through the argument `vcov =`. Below, we illustrate the usage when no
+external $`\mathbf{A}`$ matrix is provided by setting `vcov = NULL`.
+
+``` r
+eta_list <- generate_eta(method = "exponential", n = 50, max_eta = 10)
+
+fit.cox_MDTL <- cox_MDTL(
+  z = z,
+  delta = delta,
+  time = time,
+  stratum = strat,
+  beta = beta_ext,
+  vcov = NULL,
+  etas = eta_list
+)
+```
+
+Users may directly call the
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) method to
+visualize the model’s fitted performance on the training data without
+providing additional test data. If a test set is supplied, performance
+metrics are computed using the test set instead:
+
+``` r
+plot(
+  fit.cox_MDTL,
+  test_z       = test$z,
+  test_time    = test$time,
+  test_delta   = test$status,
+  test_stratum = test$stratum,
+  criteria     = "loss"
+) 
+```
+
+![Plot generated in survkl
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-29-1.png)
+
+The function
+[`cv.cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL.md)
+performs $`K`$-fold cross-validation (default $`K = 5`$) to select the
+integration parameter in the KL-integrated Cox model. We consider four
+criteria: two based on Harrell’s C-index (Harrell et al.
+1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two loss-based
+criteria—`LinPred` and `V&VH`. For details, please refer to *Appendix:
+CV Criteria*. Below is an example using the default `"V&VH"` criterion:
+
+``` r
+cvfit.cox_MDTL <- cv.cox_MDTL(
+  z = z,
+  delta = delta,
+  time = time,
+  stratum = strat,
+  beta = beta_ext,
+  etas = eta_list,
+  vcov = NULL,
+  nfolds = 5,
+  criteria = "V&VH",
+  seed = 1)
+```
+
+The cross-validated performance curve from hyperparameter tuning
+functions
+[`cv.cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL.md)
+can be visualized directly using
+[`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md):
+
+``` r
+cv.plot(cvfit.cox_MDTL)
+```
+
+![Plot generated in survkl
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-31-1.png)
+
+##### High-Dimensional Integration
+
+In high-dimensional regimes—such as when the number of predictors is
+comparable to or exceeds the sample size—the `SurvBregDiv` package
+extends Mahalanobis Distance–integrated Cox modeling with
+regularization. The families of penalties, the tuning parameters, the
+built-in high-dimensional dataset `ExampleData_highdim`, and the
+workflow for fitting and tuning penalized KL-integrated models are the
+same as described in the [KL divergence section](#sec_coxkl_high). The
+only difference is that users should use the functions
+[`cox_MDTL_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_ridge.md)
+and
+[`cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.md)
+for fitting, and
+[`cv.cox_MDTL_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_ridge.md)
+and
+[`cv.cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_enet.md)
+for cross-validation.
+
+For example, we fit a Mahalanobis Distance-integrated Ridge model for a
+fixed integration weight $`\eta`$ using an automatically generated
+lambda sequence:
+
+``` r
+fit.cox_MDTL_ridge <- cox_MDTL_ridge(
+  z        = z_hd,
+  delta    = delta_hd,
+  time     = time_hd,
+  stratum  = strat_hd,
+  beta     = beta_external_hd,
+  vcov     = NULL,
+  eta      = 1                 
+)
+```
+
+The fitted object stores, for each value of $`\lambda`$:
+
+- `$lambda` — the sequence of lambda values (in decreasing order),
+- `$beta` — estimated coefficients (one column per lambda),
+- `$linear.predictors` — linear predictors for all observations across
+  the lambda path,
+- `$likelihood` — partial log-likelihood along the lambda path,
+- `$data` — the data used for fitting.
+
+The function
+[`cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.md)
+fits a KL-integrated Cox model with an elastic-net penalty, controlled
+by the mixing parameter `alpha`. When `alpha = 1`, the penalty reduces
+to *LASSO*, introducing coefficient sparsity in addition to KL-based
+integration of external information. Similar, the penalty parameter
+$`\lambda`$ controls sparsity. If $`\lambda`$ is not provided, the
+function automatically generates a decreasing lambda sequence.
+
+Below, we illustrate the workflow using the *LASSO* special case
+(`alpha = 1`) with an automatically generated lambda path:
+
+``` r
+fit.cox_MDTL_LASSO <-cox_MDTL_enet(
+  z        = z_hd,
+  delta    = delta_hd,
+  time     = time_hd,
+  stratum  = strat_hd,
+  beta     = beta_external_hd,   
+  vcov     = NULL,
+  eta      = 1,                 
+  alpha    = 1                  # LASSO penalty
+)
+```
+
+The fitted object stores, for each lambda value:
+
+- `$lambda` — the lambda sequence (in decreasing order),
+- `$beta` — estimated coefficients (one column per lambda),
+- `$likelihood` — partial log-likelihood along the lambda path,
+- `$data` — the data used for fitting.
+
+Objects from
+[`cox_MDTL_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_ridge.md)
+or
+[`cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.md)
+functions can be visualized using the S3 plotting method
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html):
+
+This plots (at given $`\eta`$):
+
+- Loss or C-index versus the penalty parameter $`\lambda`$,
+- x-axis on a reversed log10 scale (larger penalties on the left,
+  smaller penalties on the right),
+- y-axis labeled as loss or C-index,.
+- A vertical dashed orange line marks the optimal value of λ, where the
+  loss reaches its minimum on the evaluated grid.
+
+``` r
+plot(
+  fit.cox_MDTL_LASSO,
+  test_z       = test_hd$z,
+  test_time    = test_hd$time,
+  test_delta   = test_hd$status,
+  test_stratum = test_hd$stratum,
+  criteria     = "loss"
+)
+```
+
+![Plot generated in survkl
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-34-1.png)
+
+For penalized KL-integrated models, the functions
+[`cv.cox_MDTL_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_ridge.md)
+and
+[`cv.cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_enet.md)
+perform K-fold cross-validation to tune the integration parameter
+$`\eta`$, while internally scanning over a $`\lambda`$ path for each
+candidate $`\eta`$. For each value of $`\eta`$, the cross-validation
+procedure:
+
+- evaluates a sequence of ridge or elastic-net penalties $`\lambda`$,
+- computes the chosen cross-validation criterion on the held-out folds,
+- selects the best $`\lambda`$ for that $`\eta`$,
+- aggregates the performance across folds into summary tables.
+
+The supported criteria also include two based on Harrell’s C-index
+(Harrell et al. 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two
+loss-based criteria—`LinPred` and `V&VH`. For details, please refer to
+*Appendix: CV Criteria*.
+
+Below we demonstrate tuning $`\eta`$ using 5-fold cross-validation and
+the `V&VH` criterion for the LASSO-penalized integrated model
+(`alpha = 1`). The range of integration weights $`\eta`$ can be
+generated by using the function
+[`generate_eta()`](https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.md).
+The user should rely on prior knowledge or problem-specific
+considerations to determine an appropriate range. (For ridge, use
+[`cv.cox_MDTL_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_ridge.md)
+analogously.)
+
+``` r
+eta_grid_hd <- generate_eta(method = "exponential", n = 50, max_eta = 100)
+
+cvfit.cox_MDTL_LASSO <- cv.cox_MDTL_enet(
+  z = z_hd,
+  delta = delta_hd,
+  time = time_hd,
+  stratum = strat_hd,
+  beta = beta_external_hd,
+  vcov = NULL,
+  etas = eta_grid_hd,
+  alpha = 1, # LASSO
+  nfolds = 5,
+  cv.criteria = "V&VH",
+  seed = 1
+)
+```
+
+The helper function
+[`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md)
+can be used to visualize performance versus $`\eta`$:
+
+For variable importance and stability selection, the functions
+[`variable_importance()`](https://um-kevinhe.github.io/SurvBregDiv/reference/variable_importance.md)
+and
+[`cox_MDTL_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_MDTL_enet.StabSelect.md)
+can be applied to the Mahalanobis distance–integrated elastic-net models
+fitted by
+[`cv.cox_MDTL_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_enet.md),
+using the same interface and workflow as described in the sections on
+[variable importance and stability selection](#sec_var_importance) and
+[Bagging](#sec_bagging) in the KL divergence section.
+
+### 2.3 (Nested) Case-Control Design
 
 In the NCC setting, event times are represented through matched
-case–control sets and estimation proceeds via conditional logistic
+case–control sets, and estimation proceeds via conditional logistic
 regression. `SurvBregDiv` enables external information borrowing within
 this framework through Bregman divergence, allowing improved efficiency
 while respecting the matched-set structure. The remainder of this
-section demonstrates the core usage and workflow.
+section demonstrates the core usage and workflow. Standard matched
+case–control or matched cohort studies can be viewed as special cases of
+the NCC design.
 
-#### Low-Dimensional Integration
+We adopt the KL-divergence approach for data integration and present the
+usage of the functions for [low-dimensional](#sec_low_cc) and
+[high-dimensional](#sec_high_cc) settings separately.
 
-##### Example Dataset:
+#### 2.3.1 Low-Dimensional Integration
 
 The built-in simulated dataset for NCC designs, `ExampleData_cc`,
 contains a training set (1000 samples) and a test set (2500 samples).
@@ -766,13 +1129,21 @@ set.cc    <- train.cc$stratum
 beta_ext.cc <- ExampleData_cc$beta_external
 ```
 
-##### Model Fitting and Hyperparameter Tuning
-
 The main fitting function for this setting is `clogitkl`. Users must
 specify the tie-handling method via the `method` argument. For 1:M
 matched case–control studies, `"breslow"` and `"exact"` yield identical
 results, although `"exact"` is theoretically preferable. For n:m matched
 designs with $`n > 1`$, the two methods can differ.
+
+To use the KL divergence–based integrated model, the user must at least
+provide the estimated external regression coefficients
+$`\widetilde{\boldsymbol{\beta}}`$ via the argument `beta` in the
+function
+[`clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/clogitkl.md).
+The integration weights $`\eta`$ can be generated using the function
+[`generate_eta()`](https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.md).
+The user should rely on prior knowledge or problem-specific
+considerations to determine an appropriate range of $`\eta`$ values.
 
 ``` r
 eta_list <- generate_eta(method = "exponential", n = 50, max_eta = 5)
@@ -782,10 +1153,11 @@ clogitkl.fit_breslow <- clogitkl(y = y.cc, z = z.cc, stratum = set.cc,
                                  method = "breslow")
 ```
 
-The object returned by `clogitkl` can be visualized using the S3
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html) method. Its
-usage is consistent with the full-cohort integrated Cox model introduced
-earlier:
+Users may directly call the
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) method to
+visualize the model’s fitted performance on the training data without
+providing additional test data. If a test set is supplied, performance
+metrics are computed using the test set instead:
 
 ``` r
 plot(
@@ -798,12 +1170,26 @@ plot(
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-27-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-38-1.png)
 
-Similarly, cross-validation for tuning `eta` can be performed via
+Cross-validation for tuning $`\eta`$ can be performed via
 [`cv.clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl.md),
-which shares the same interface and functionality as its full-cohort
-counterparts:
+which performs K-fold cross-validation to tune the integration parameter
+$`\eta`$.
+
+The supported criteria include predicted deviance (`loss`), `AUC`
+(Hanley and McNeil 1982), and Brier Score (`Brier`)(Glenn et al. 1950).
+For details, please refer to *Appendix: CV Criteria*.
+
+Below we demonstrate tuning $`\eta`$ using 5-fold cross-validation and
+the `V&VH` criterion for the LASSO-penalized integrated model
+(`alpha = 1`). The range of integration weights $`\eta`$ can be
+generated by using the function
+[`generate_eta()`](https://um-kevinhe.github.io/SurvBregDiv/reference/generate_eta.md).
+The user should rely on prior knowledge or problem-specific
+considerations to determine an appropriate range. (For ridge, use
+[`cv.coxkl_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ridge.md)
+analogously.)
 
 ``` r
 cv.clogitkl.fit_breslow <- cv.clogitkl(
@@ -826,16 +1212,15 @@ cv.plot(cv.clogitkl.fit_breslow)
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-29-1.png) As
-before, the plot displays a purple curve tracing the cross-validated
-performance across the `eta` grid, a green dotted horizontal line
-representing the internal baseline at `eta = 0` (with a green point
-marking its value), and a vertical dashed orange line indicating the
-optimal `eta` at which the cross-validated loss is minimized.
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-40-1.png)
 
-#### High-Dimensional Integration
+The plot displays a purple curve tracing the cross-validated performance
+across the $`\eta`$ grid, a green dotted horizontal line representing
+the internal baseline at $`eta`$ = 0 (with a green point marking its
+value), and a vertical dashed orange line indicating the optimal
+$`\eta`$ at which the cross-validated loss is minimized.
 
-##### Example Dataset:
+#### 2.3.2 High-Dimensional Integration
 
 The built-in simulated dataset for NCC designs,
 `ExampleData_cc_highdim`, contains a training set with 50 matched sets
@@ -856,13 +1241,10 @@ set.cc_hd    <- train.cc_hd$stratum
 beta_ext.cc_hd <- ExampleData_cc_highdim$beta_external
 ```
 
-##### Model Fitting and Hyperparameter Tuning
-
 For high-dimensional NCC data, we demonstrate usage with
 [`clogitkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/clogitkl_enet.md),
 which fits KL-integrated conditional logistic regression models with
-elastic-net penalties. The interface and workflow are analogous to those
-for the full-cohort integrated Cox functions.
+elastic-net penalties.
 
 ``` r
 clogitkl_enet_fit <- clogitkl_enet(
@@ -873,8 +1255,6 @@ clogitkl_enet_fit <- clogitkl_enet(
   eta     = 0
 )
 ```
-
-    ## Warning: alpha is not provided. Setting alpha = 1 (lasso penalty).
 
 The fitted object can be visualized using the S3
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method:
@@ -890,14 +1270,13 @@ plot(
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-32-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-43-1.png)
 
-Cross-validation for tuning `eta` can be performed via
+Cross-validation for tuning $`\eta`$ can be performed via
 [`cv.clogitkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl_enet.md):
 
 ``` r
 eta_list <- generate_eta(method = "exponential", n = 50, max_eta = 5)
-
 cv.clogitkl_enet_fit <- cv.clogitkl_enet(
   y        = y.cc_hd,
   z        = z.cc_hd,
@@ -918,10 +1297,37 @@ cv.plot(cv.clogitkl_enet_fit)
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-34-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-45-1.png)
 
-As before, the plot displays a purple curve tracing the cross-validated
-performance across the `eta` grid, a green dotted horizontal line
-representing the internal baseline at `eta = 0` (with a green point
-marking its value), and a vertical dashed orange line indicating the
-optimal `eta` at which the cross-validated loss is minimized.
+The plot displays a purple curve tracing the cross-validated performance
+across the $`\eta`$ grid, a green dotted horizontal line representing
+the internal baseline at `eta = 0` (with a green point marking its
+value), and a vertical dashed orange line indicating the optimal
+$`\eta`$ at which the cross-validated loss is minimized.
+
+## 3. References
+
+Breslow, Norman. 1974. “Covariance Analysis of Censored Survival Data.”
+*Biometrics*, 89–99.
+
+Cox, David R. 1972. “Regression Models and Life-Tables.” *Journal of the
+Royal Statistical Society: Series B (Methodological)* 34 (2): 187–202.
+
+Gao, Xin, and Raymond J. Carroll. 2017. “Data Integration with High
+Dimensionality.” *Biometrika* 104 (2): 251–72.
+<https://doi.org/10.1093/biomet/asx023>.
+
+Glenn, W Brier et al. 1950. “Verification of Forecasts Expressed in
+Terms of Probability.” *Monthly Weather Review* 78 (1): 1–3.
+
+Hanley, James A, and Barbara J McNeil. 1982. “The Meaning and Use of the
+Area Under a Receiver Operating Characteristic (ROC) Curve.” *Radiology*
+143 (1): 29–36.
+
+Harrell, Frank E, Robert M Califf, David B Pryor, Kerry L Lee, and
+Robert A Rosati. 1982. “Evaluating the Yield of Medical Tests.” *JAMA*
+247 (18): 2543–46.
+
+Wang, Xiaogang, and James V. Zidek. 2005. “Selecting Likelihood Weights
+by Cross-Validation.” *The Annals of Statistics* 33 (2): 463–500.
+<https://doi.org/10.1214/009053604000001309>.

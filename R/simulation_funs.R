@@ -541,16 +541,19 @@ sim.binary <- function(n_stratum,
 }
 
 
-#' Simulate 1:m matched case-control data
+#' Simulate 1:m matched case-control data with mean/SD control
 #'
 #' @description
 #' Internal function to simulate 1:m matched data. Each stratum contains exactly one case.
-#' Probabilities are proportional to \code{exp(eta)}.
+#' The case is sampled with probability proportional to exp(eta), where
+#' eta = theta_stratum + Z %*% beta.
 #'
 #' @param n_stratum Number of matched strata (sets).
 #' @param m Number of controls per case (>=1).
 #' @param beta Numeric vector of coefficients (length p).
-#' @param rho Correlation parameter for Z within stratum.
+#' @param rho Correlation parameter for Z within stratum (equicorrelation).
+#' @param mu_Z Mean vector for Z. Scalar or length p.
+#' @param sd_Z Standard deviation vector for Z. Scalar or length p, must be positive.
 #' @param stratum_sd SD of stratum random intercepts.
 #' @param seed Optional RNG seed.
 #'
@@ -562,42 +565,78 @@ sim.matched_cc <- function(n_stratum,
                            m,
                            beta,
                            rho = 0.8,
+                           mu_Z = 0,
+                           sd_Z = 1,
                            stratum_sd = 0.5,
                            seed = NULL) {
   if (!is.null(seed)) set.seed(seed)
-  if (!is.numeric(beta) || any(!is.finite(beta))) stop("beta must be numeric.")
+
+  if (!is.numeric(beta) || any(!is.finite(beta))) stop("beta must be numeric and finite.")
   p <- length(beta)
   if (p < 1L) stop("beta must have positive length.")
-  if (!is.numeric(m) || length(m) != 1L || m < 1L || m != as.integer(m))
-    stop("m must be integer >= 1.")
-  if (stratum_sd < 0) stop("stratum_sd must be >= 0.")
-  if (!is.finite(rho)) stop("rho must be finite.")
+
+  if (!is.numeric(n_stratum) || length(n_stratum) != 1L || n_stratum < 1L || n_stratum != as.integer(n_stratum)) {
+    stop("n_stratum must be an integer >= 1.")
+  }
+  n_stratum <- as.integer(n_stratum)
+
+  if (!is.numeric(m) || length(m) != 1L || m < 1L || m != as.integer(m)) {
+    stop("m must be an integer >= 1.")
+  }
+  m <- as.integer(m)
+
+  if (!is.finite(rho) || rho < 0 || rho >= 1) stop("rho must be in [0, 1).")
+  if (!is.finite(stratum_sd) || stratum_sd < 0) stop("stratum_sd must be finite and >= 0.")
+
+  if (length(mu_Z) == 1L) {
+    mu_vec <- rep(as.numeric(mu_Z), p)
+  } else if (length(mu_Z) == p) {
+    mu_vec <- as.numeric(mu_Z)
+  } else {
+    stop("mu_Z must be a scalar or a numeric vector of length p.")
+  }
+  if (any(!is.finite(mu_vec))) stop("mu_Z must be finite.")
+
+  if (length(sd_Z) == 1L) {
+    sd_vec <- rep(as.numeric(sd_Z), p)
+  } else if (length(sd_Z) == p) {
+    sd_vec <- as.numeric(sd_Z)
+  } else {
+    stop("sd_Z must be a scalar or a numeric vector of length p.")
+  }
+  if (any(!is.finite(sd_vec)) || any(sd_vec <= 0)) stop("sd_Z must be positive and finite.")
 
   theta_stratum <- if (stratum_sd > 0) rnorm(n_stratum, 0, stratum_sd) else rep(0, n_stratum)
 
-  rZ <- function(theta_i, rho, p, n_i) {
-    mu_i <- (theta_i * rho / 0.4) * rep(1, p)
-    Sigma_i <- diag(1 - rho, p) + (rho - rho^2) * matrix(1, p, p)
-    MASS::mvrnorm(n = n_i, mu = mu_i, Sigma = Sigma_i)
-  }
-
   set_size <- m + 1L
-  Z_all <- matrix(NA_real_, nrow = n_stratum * set_size, ncol = p)
-  y_all <- integer(n_stratum * set_size)
-  stratum_all <- integer(n_stratum * set_size)
+  N <- n_stratum * set_size
+
+  R <- diag(1 - rho, p) + matrix(rho, p, p)
+  D <- diag(sd_vec, p)
+  Sigma <- D %*% R %*% D
+
+  Z_all <- matrix(NA_real_, nrow = N, ncol = p)
+  y_all <- integer(N)
+  stratum_all <- integer(N)
 
   row_start <- 1L
-  for (i in seq_len(n_stratum)) {
+  for (s in seq_len(n_stratum)) {
     idx <- row_start:(row_start + set_size - 1L)
-    Zi <- rZ(theta_stratum[i], rho, p, set_size)
-    eta <- as.numeric(theta_stratum[i] + Zi %*% beta)
+
+    Zi <- MASS::mvrnorm(n = set_size, mu = mu_vec, Sigma = Sigma)
+    eta <- as.numeric(theta_stratum[s] + Zi %*% beta)
+
     w <- exp(eta - max(eta))
     pr <- w / sum(w)
-    case_idx <- sample.int(set_size, 1L, prob = pr)
-    yi <- rep(0L, set_size); yi[case_idx] <- 1L
-    Z_all[idx,] <- Zi
+    case_pos <- sample.int(set_size, 1L, prob = pr)
+
+    yi <- integer(set_size)
+    yi[case_pos] <- 1L
+
+    Z_all[idx, ] <- Zi
     y_all[idx] <- yi
-    stratum_all[idx] <- i
+    stratum_all[idx] <- s
+
     row_start <- row_start + set_size
   }
 
@@ -619,13 +658,15 @@ sim.matched_cc <- function(n_stratum,
       m = m,
       set_size = set_size,
       theta_stratum = theta_stratum,
-      alpha0 = NA,
       stratum_sd = stratum_sd,
       rho = rho,
-      case_prop = 1/set_size
+      mu_Z = mu_vec,
+      sd_Z = sd_vec,
+      case_prop = 1 / set_size
     )
   )
 }
+
 
 
 #' Simulate Low-Dimensional Survival Data for Integration

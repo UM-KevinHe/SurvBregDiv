@@ -4,8 +4,8 @@ template:
   bootstrap: 5
   params:
     bootswatch: lumen
-
-mathjax: true
+    ganalytics: UA-54921687-5
+    mathjax: true
 
 toc:
   depth: 6
@@ -20,12 +20,10 @@ navbar:
     - text: "Get started"
       href: articles/SurvBregDiv.html
 
-    - text: "Articles"
+    - text: "Appendix"
       menu:
-        - text: "Overview"
-          href: articles/SurvBregDiv.html
-        - text: "Methods appendix"
-          href: articles/Methods.html
+        - text: "CV Criteria"
+          href: articles/CV_Criteria.html
 
     - text: "Reference"
       href: reference/index.html
@@ -42,9 +40,14 @@ articles:
 
   - title: "Appendix"
     contents:
-      - Methods
+      - CV_Criteria
 
 reference:
+  - title: "Individual-level Internal–External Integration"
+    contents:
+      - cox_indi
+      - cv.cox_indi
+
   - title: "Low-Dimensional Bregman Divergence based Integrated Cox Model"
     contents:
       - coxkl
@@ -65,8 +68,9 @@ reference:
       - cv.cox_MDTL_ridge
       - cv.cox_MDTL_enet
 
-  - title: "Stability Selection for High-Dimensional Models"
+  - title: "Variable Importance/Stability Selection for High-Dimensional Models"
     contents:
+      - variable_importance
       - coxkl_enet.StabSelect
       - cox_MDTL_enet.StabSelect
 
@@ -85,6 +89,10 @@ reference:
       - clogitkl_enet
       - cv.clogitkl_enet
 
+  - title: "Multi-Source Integration"
+    contents:
+      - coxkl_enet.multi
+
   - title: "Plotting Functions"
     contents:
       - cv.plot
@@ -95,6 +103,7 @@ reference:
       - plot.cox_MDTL_enet
       - plot.cox_MDTL_ridge
       - plot.StabSelect
+      - plot.variable_importance
 
   - title: "Utilities"
     contents:
@@ -106,3 +115,4 @@ reference:
       - ExampleData_highdim
       - ExampleData_cc
       - ExampleData_cc_highdim
+      - ExampleData_indi

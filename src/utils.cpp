@@ -8,17 +8,17 @@ using namespace std;
 
 /*
  * Computes the reverse cumulative sum of a numeric vector.
- * 
+ *
  * Parameters:
  *   X - Input numeric vector (length n)
- * 
+ *
  * Example:
  *   X = (1, 2, 3)
  *   rev_cumsum(X) = (6, 5, 3)
  */
 // [[Rcpp::export]]
 arma::vec rev_cumsum(const arma::vec& X) {
-  return arma::flipud(arma::cumsum(arma::flipud(X))); 
+  return arma::flipud(arma::cumsum(arma::flipud(X)));
 }
 
 // [[Rcpp::export]]
@@ -26,7 +26,7 @@ arma::umat combn_index(int n, int r) {
   std::vector<int> combo(r);
   for (int i = 0; i < r; ++i) combo[i] = i;
   std::vector< std::vector<int> > all_combos;
-  
+
   while (true) {
     all_combos.push_back(combo);
     int i = r - 1;
@@ -35,7 +35,7 @@ arma::umat combn_index(int n, int r) {
     ++combo[i];
     for (int j = i + 1; j < r; ++j) combo[j] = combo[j - 1] + 1;
   }
-  
+
   arma::umat out(r, all_combos.size());
   for (size_t j = 0; j < all_combos.size(); ++j) {
     for (int i = 0; i < r; ++i) out(i, j) = all_combos[j][i];
@@ -50,7 +50,7 @@ arma::umat combn_index(int n, int r) {
  * Parameters:
  *   lp              - Linear predictor (length n), i.e., Z * beta
  *   delta           - Event indicator vector (length n), 1 = event, 0 = censored
- *   
+ *
  *   n_each_stratum  - Vector indicating number of observations per stratum
  *
  * Assumes:
@@ -68,20 +68,22 @@ double pl_cal_theta(const arma::vec& lp,
   arma::uvec ind_start(S);
   ind_start(0) = 0;
   for (arma::uword s = 1; s < S; ++s) {
-    ind_start(s) = ind_start(s - 1) + n_each_stratum(s - 1);
+    ind_start(s) = ind_start(s - 1) + static_cast<arma::uword>(n_each_stratum(s - 1));
   }
 
   double loglik = 0.0;
 
   for (arma::uword s = 0; s < S; ++s) {
-    arma::uword start = ind_start(s);
-    arma::uword len = n_each_stratum(s);
-    arma::uword end = start + len - 1;
+    const arma::uword len = static_cast<arma::uword>(n_each_stratum(s));
+    if (len == 0) continue;
+
+    const arma::uword start = ind_start(s);
+    const arma::uword end = start + len - 1;
 
     arma::vec lp_s = lp.subvec(start, end);
     arma::vec delta_s = delta.subvec(start, end);
-    arma::vec exp_lp_s = arma::exp(lp_s);
 
+    arma::vec exp_lp_s = arma::exp(lp_s);
     arma::vec S0_s = rev_cumsum(exp_lp_s);
 
     for (arma::uword i = 0; i < len; ++i) {
@@ -90,6 +92,7 @@ double pl_cal_theta(const arma::vec& lp,
       }
     }
   }
+
   return loglik;
 }
 
@@ -107,51 +110,51 @@ double pl_cal_theta(const arma::vec& lp,
  *   A vector of adjusted risk scores (delta_tilde)
  */
 // [[Rcpp::export]]
-arma::vec calculateDeltaTilde(const arma::vec& event, 
-                              const arma::vec& time, 
+arma::vec calculateDeltaTilde(const arma::vec& event,
+                              const arma::vec& time,
                               const arma::vec& RS,
                               const arma::vec& n_each_stratum) {
   const arma::uword n = event.n_elem;
-  arma::vec delta_tilde(n, arma::fill::zeros);    
+  arma::vec delta_tilde(n, arma::fill::zeros);
   arma::vec exp_theta_tilde = arma::exp(RS);
-  
+
   const arma::uword S = n_each_stratum.n_elem;
-  arma::uvec ind_start(S); 
+  arma::uvec ind_start(S);
   ind_start(0) = 0;
   for (arma::uword i = 1; i < S; ++i) {
     ind_start(i) = ind_start(i - 1) + n_each_stratum(i - 1);
   }
-  
+
   for (arma::uword s = 0; s < S; ++s){
     arma::uword start = ind_start(s);
     arma::uword len   = n_each_stratum(s);
     if (len == 0) continue;
-    
+
     const arma::uword end = start + len - 1;
-    
+
     arma::vec event_s = event.subvec(start, end);
     arma::vec time_s = time.subvec(start, end);
     arma::vec exp_theta_tilde_s = exp_theta_tilde.subvec(start, end);
-    
+
     arma::vec denom_s = rev_cumsum(exp_theta_tilde_s);
-    
+
     arma::uvec failure_idx_s = arma::find(event_s == 1);
     if (failure_idx_s.is_empty()) continue;
-    
+
     for (arma::uword k = 0; k < failure_idx_s.n_elem; ++k) {
       const arma::uword f = failure_idx_s(k);
       arma::uvec at_risk = arma::find(time_s >= time_s(f));
       if (at_risk.is_empty()) continue;
-      
+
       const double denom = denom_s(f);
       if (denom <= 0.0) continue;
-      
+
       arma::uvec at_risk_global = at_risk + start;
       delta_tilde.elem(at_risk_global) += exp_theta_tilde_s.elem(at_risk) / denom;
     }
   }
-  
-  
+
+
   return delta_tilde;
 }
 
@@ -173,23 +176,23 @@ arma::vec calculateDeltaTilde(const arma::vec& event,
  *   - The calculation is stratified
  */
 // [[Rcpp::export]]
-List loss_fn_cpp(const arma::mat& Z, 
+List loss_fn_cpp(const arma::mat& Z,
                  const arma::vec& delta,
                  arma::vec& beta,
                  const arma::vec& n_each_stratum) {
-  
+
   const arma::uword S = n_each_stratum.n_elem;
   arma::vec theta = Z * beta;
   arma::vec exp_theta = arma::exp(theta);
   double loglik = 0.0;
-  
+
   // Compute start index for each stratum
   arma::vec ind_start(S);
   ind_start(0) = 0;
   for (arma::uword i = 1; i < S; ++i) {
     ind_start(i) = ind_start(i - 1) + n_each_stratum(i - 1);
   }
-  
+
   // Loop over strata
   for (arma::uword j = 0; j < S; ++j) {
     arma::uword start = ind_start(j);
@@ -199,11 +202,11 @@ List loss_fn_cpp(const arma::mat& Z,
     arma::vec theta_s = theta.subvec(start, end);
     arma::vec exp_theta_s = exp_theta.subvec(start, end);
     arma::vec delta_s = delta.subvec(start, end);
-    
+
     arma::vec S0_s = rev_cumsum(exp_theta_s);
     loglik += arma::accu(delta_s % (theta_s - arma::log(S0_s)));
   }
-  
+
   return List::create(Named("loglik") = loglik);
 }
 
@@ -213,7 +216,7 @@ List loss_fn_cpp(const arma::mat& Z,
  * Computes S0 for the stratified Cox models.
  *
  * Definition:
- *   For each observation i within a stratum s, 
+ *   For each observation i within a stratum s,
  *   S0_i = sum_{l in stratum s : t_l >= t_i} exp(Z * beta).
  *
  * Parameters:
@@ -227,15 +230,15 @@ List loss_fn_cpp(const arma::mat& Z,
  *     - S0 : vector of length n containing the stratum-wise reverse cumulative sums of exp(theta).
  */
 // [[Rcpp::export]]
-List ddloglik_S0(const arma::mat& Z, 
-                 const arma::vec& delta, 
-                 const arma::vec& beta, 
+List ddloglik_S0(const arma::mat& Z,
+                 const arma::vec& delta,
+                 const arma::vec& beta,
                  const arma::vec& n_each_stratum) {
   const arma::uword S = n_each_stratum.n_elem;
   arma::vec theta = Z * beta;
   arma::vec exp_theta = arma::exp(theta);
   arma::vec S0(Z.n_rows);  // Output
-  
+
   // Compute start index for each stratum
   arma::vec ind_start(S);
   ind_start(0) = 0;
@@ -247,12 +250,12 @@ List ddloglik_S0(const arma::mat& Z,
     arma::uword start = ind_start(j);
     arma::uword len = n_each_stratum(j);
     arma::uword end = start + len - 1;
-    
+
     arma::vec exp_theta_s = exp_theta.subvec(start, end);
     arma::vec S0_s = rev_cumsum(exp_theta_s);
     S0.subvec(start, end) = S0_s;
   }
-  
+
   return List::create(Named("S0") = S0);
 }
 
@@ -304,7 +307,7 @@ Rcpp::List cox_c_index(const arma::vec& time,
             } else if (xbeta(i) > xbeta(j)) {
               N_con += factor;
             }
-          } 
+          }
         } else {
           if (risk_diff < 1e-4) {
             N_con += 0.5 * factor;
@@ -346,24 +349,24 @@ double maxgrad(arma::mat &x, arma::vec &r, arma::vec &K, arma::vec &m){ // "K": 
 
 
 // [[Rcpp::export]]
-double maxgrad_MDTL(arma::mat &x, 
-                    arma::vec &r, 
-                    arma::vec &Qbeta_ext, 
-                    arma::vec &Qbeta_Ustar, 
-                    arma::vec &K, 
-                    arma::vec &m, 
+double maxgrad_MDTL(arma::mat &x,
+                    arma::vec &r,
+                    arma::vec &Qbeta_ext,
+                    arma::vec &Qbeta_Ustar,
+                    arma::vec &K,
+                    arma::vec &m,
                     double eta) {
-  int J = K.n_elem - 1; 
+  int J = K.n_elem - 1;
   double z_max = 0.0, z;
 
   for (int g = 0; g < J; g++) {
-    int Kg = K(g + 1) - K(g); 
+    int Kg = K(g + 1) - K(g);
     arma::vec Z(Kg);
     for (int j = K(g); j < K(g + 1); j++) {
       arma::vec x_tmp = x.col(j);
-      Z(j - K(g)) = arma::dot(x_tmp, r) 
-                    - eta * Qbeta_Ustar(j)   
-                    + eta * Qbeta_ext(j); 
+      Z(j - K(g)) = arma::dot(x_tmp, r)
+                    - eta * Qbeta_Ustar(j)
+                    + eta * Qbeta_ext(j);
     }
     z = arma::norm(Z) / m(g);
     if (z > z_max) z_max = z;
@@ -388,7 +391,7 @@ double Soft_thres(const double z, const double l) {
 
 
 /*
- * Computes the observed Fisher Information and vcov matrix 
+ * Computes the observed Fisher Information and vcov matrix
  * for the stratified Cox model at a given beta_hat.
  *
  * Parameters:
@@ -402,14 +405,14 @@ double Soft_thres(const double z, const double l) {
  *     - Information: observed information matrix
  *     - Vcov: variance-covariance matrix (inverse of Information)
  */
- 
+
 // [[Rcpp::export]]
 arma::mat Cox_Vcov(const arma::mat& Z,
                    const arma::vec& delta,
                    const arma::vec& beta,
                    const arma::vec& n_each_stratum,
                    const double lambda = 0.0) {
-  
+
   int S = n_each_stratum.n_elem;
   int p = beta.n_rows;
 
