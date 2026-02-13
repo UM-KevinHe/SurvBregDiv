@@ -1,4 +1,4 @@
-# SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence
+# SurvBregDiv: Bregman Divergence Data Integration for Time-to-Event Modelling
 
 ## 1. Introduction
 
@@ -38,23 +38,28 @@ relevance, no existing methodology or software supports transfer
 learning or external information borrowing under NCC designs.
 
 The `SurvBregDiv` package addresses these challenges by providing a
-unified transfer-learning framework for both full-cohort Cox data and
-nested case–control designs. The methods integrate external information
-in a privacy-preserving manner and are applicable to both
-low-dimensional settings and high-dimensional variable selection with
-ridge, lasso, and elastic net penalties.
+unified Bregman Divergence transfer-learning framework for both
+full-cohort Cox data and nested case–control designs. The methods
+integrate external information in a privacy-preserving manner and are
+applicable to both low-dimensional settings and high-dimensional
+variable selection with ridge, lasso, and elastic net penalties.
 
 ### Key Features
 
-- **Transfer learning via KL/Bregman shrinkage**  
+- **Transfer learning via Bregman Divergence**  
   Integrates external information through Bregman divergence–based
   penalization, enabling adaptive borrowing from heterogeneous data
   sources.
 
+- **Flexible external information formats**  
+  Supports incorporation of external information provided either as
+  individual-level data or as summary-level inputs, such as regression
+  coefficients, risk scores, or information defined on partially
+  overlapping covariate sets.
+
 - **Privacy-preserving external information use**  
-  Operates on summary-level external inputs—such as fitted coefficients
-  or risk scores—without requiring individual-level external data
-  access.
+  Allow summary-level external inputs—such as fitted coefficients or
+  risk scores—without requiring individual-level external data access.
 
 - **Heterogeneity-aware borrowing**  
   Accommodates population differences through
@@ -64,14 +69,6 @@ ridge, lasso, and elastic net penalties.
 - **High-dimensional modeling with regularization**  
   Supports penalized KL-integrated models, including ridge, lasso, and
   elastic net penalties for variable selection and shrinkage.
-
-- **Flexible external information formats**  
-  Allows external inputs in the form of coefficients, risk scores, or
-  partially overlapping covariate sets.
-
-- **Built-in cross-validation for tuning**  
-  Provides cross-validation criteria tailored for survival outcomes,
-  including C-index, predicted deviance, and V&VH loss.
 
 This vignette introduces the core functionalities of `SurvBregDiv` and
 illustrates workflows for both low- and high-dimensional applications.
@@ -219,7 +216,7 @@ $`\eta`$ that yields the best predictive performance. We adopt
 cross-validation and consider four criteria: two based on Harrell’s
 C-index (Harrell et al. 1982)—`CIndex_pooled` and
 `CIndex_foldaverage`—and two loss-based criteria—`LinPred` and `V&VH`.
-For details, please refer to *Appendix: CV Criteria*.
+For details, please refer to Page: *Appendix: CV Criteria*.
 
 We provide an example illustrating the use of the cross-validation
 function
@@ -331,8 +328,9 @@ performs $`K`$-fold cross-validation (default $`K = 5`$) to select the
 integration parameter in the KL-integrated Cox model. We consider four
 criteria: two based on Harrell’s C-index (Harrell et al.
 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two loss-based
-criteria—`LinPred` and `V&VH`. For details, please refer to *Appendix:
-CV Criteria*. Below is an example using the default `"V&VH"` criterion:
+criteria—`LinPred` and `V&VH`. For details, please refer to Page:
+*Appendix: CV Criteria*. Below is an example using the default `"V&VH"`
+criterion:
 
 ``` r
 cvfit.coxkl <- cv.coxkl(
@@ -557,7 +555,7 @@ procedure:
 The supported criteria also include two based on Harrell’s C-index
 (Harrell et al. 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two
 loss-based criteria—`LinPred` and `V&VH`. For details, please refer to
-*Appendix: CV Criteria*.
+Page: *Appendix: CV Criteria*.
 
 Below we demonstrate tuning $`\eta`$ using 5-fold cross-validation and
 the `V&VH` criterion for the LASSO-penalized integrated model
@@ -892,8 +890,9 @@ performs $`K`$-fold cross-validation (default $`K = 5`$) to select the
 integration parameter in the KL-integrated Cox model. We consider four
 criteria: two based on Harrell’s C-index (Harrell et al.
 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two loss-based
-criteria—`LinPred` and `V&VH`. For details, please refer to *Appendix:
-CV Criteria*. Below is an example using the default `"V&VH"` criterion:
+criteria—`LinPred` and `V&VH`. For details, please refer to Page:
+*Appendix: CV Criteria*. Below is an example using the default `"V&VH"`
+criterion:
 
 ``` r
 cvfit.cox_MDTL <- cv.cox_MDTL(
@@ -1045,7 +1044,7 @@ procedure:
 The supported criteria also include two based on Harrell’s C-index
 (Harrell et al. 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two
 loss-based criteria—`LinPred` and `V&VH`. For details, please refer to
-*Appendix: CV Criteria*.
+Page: *Appendix: CV Criteria*.
 
 Below we demonstrate tuning $`\eta`$ using 5-fold cross-validation and
 the `V&VH` criterion for the LASSO-penalized integrated model
@@ -1179,7 +1178,7 @@ $`\eta`$.
 
 The supported criteria include predicted deviance (`loss`), `AUC`
 (Hanley and McNeil 1982), and Brier Score (`Brier`)(Glenn et al. 1950).
-For details, please refer to *Appendix: CV Criteria*.
+For details, please refer to Page: *Appendix: CV Criteria*.
 
 Below we demonstrate tuning $`\eta`$ using 5-fold cross-validation and
 the `V&VH` criterion for the LASSO-penalized integrated model
@@ -1305,7 +1304,7 @@ the internal baseline at `eta = 0` (with a green point marking its
 value), and a vertical dashed orange line indicating the optimal
 $`\eta`$ at which the cross-validated loss is minimized.
 
-## 3. References
+## References
 
 Breslow, Norman. 1974. “Covariance Analysis of Censored Survival Data.”
 *Biometrics*, 89–99.

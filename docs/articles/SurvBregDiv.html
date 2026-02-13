@@ -5,12 +5,16 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence • SurvBregDiv</title>
+<title>SurvBregDiv: Bregman Divergence Data Integration for Time-to-Event Modelling • SurvBregDiv</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/Roboto-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/Roboto_Slab-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="SurvBregDiv: Bregman Divergence Data Integration for Time-to-Event Modelling">
 <!-- Global site tag (gtag.js) - Google Analytics --><script async src="https://www.googletagmanager.com/gtag/js?id=UA-54921687-5"></script><script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -61,7 +65,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence</h1>
+      <h1>SurvBregDiv: Bregman Divergence Data Integration for Time-to-Event Modelling</h1>
             
       
 
@@ -105,24 +109,28 @@ regression applied to matched risk sets. Despite its practical
 relevance, no existing methodology or software supports transfer
 learning or external information borrowing under NCC designs.</p>
 <p>The <code>SurvBregDiv</code> package addresses these challenges by
-providing a unified transfer-learning framework for both full-cohort Cox
-data and nested case–control designs. The methods integrate external
-information in a privacy-preserving manner and are applicable to both
-low-dimensional settings and high-dimensional variable selection with
-ridge, lasso, and elastic net penalties.</p>
+providing a unified Bregman Divergence transfer-learning framework for
+both full-cohort Cox data and nested case–control designs. The methods
+integrate external information in a privacy-preserving manner and are
+applicable to both low-dimensional settings and high-dimensional
+variable selection with ridge, lasso, and elastic net penalties.</p>
 <div class="section level3">
 <h3 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
 </h3>
 <ul>
-<li><p><strong>Transfer learning via KL/Bregman shrinkage</strong><br>
+<li><p><strong>Transfer learning via Bregman Divergence</strong><br>
 Integrates external information through Bregman divergence–based
 penalization, enabling adaptive borrowing from heterogeneous data
 sources.</p></li>
+<li><p><strong>Flexible external information formats</strong><br>
+Supports incorporation of external information provided either as
+individual-level data or as summary-level inputs, such as regression
+coefficients, risk scores, or information defined on partially
+overlapping covariate sets.</p></li>
 <li><p><strong>Privacy-preserving external information
 use</strong><br>
-Operates on summary-level external inputs—such as fitted coefficients or
-risk scores—without requiring individual-level external data
-access.</p></li>
+Allow summary-level external inputs—such as fitted coefficients or risk
+scores—without requiring individual-level external data access.</p></li>
 <li><p><strong>Heterogeneity-aware borrowing</strong><br>
 Accommodates population differences through tuning-parameter–controlled
 shrinkage, selectively borrowing strength only when sources are
@@ -131,12 +139,6 @@ compatible.</p></li>
 regularization</strong><br>
 Supports penalized KL-integrated models, including ridge, lasso, and
 elastic net penalties for variable selection and shrinkage.</p></li>
-<li><p><strong>Flexible external information formats</strong><br>
-Allows external inputs in the form of coefficients, risk scores, or
-partially overlapping covariate sets.</p></li>
-<li><p><strong>Built-in cross-validation for tuning</strong><br>
-Provides cross-validation criteria tailored for survival outcomes,
-including C-index, predicted deviance, and V&amp;VH loss.</p></li>
 </ul>
 <p>This vignette introduces the core functionalities of
 <code>SurvBregDiv</code> and illustrates workflows for both low- and
@@ -279,7 +281,7 @@ that yields the best predictive performance. We adopt cross-validation
 and consider four criteria: two based on Harrell’s C-index <span class="citation">(Harrell et al. 1982)</span>—<code>CIndex_pooled</code>
 and <code>CIndex_foldaverage</code>—and two loss-based
 criteria—<code>LinPred</code> and <code>V&amp;VH</code>. For details,
-please refer to <em>Appendix: CV Criteria</em>.</p>
+please refer to Page: <em>Appendix: CV Criteria</em>.</p>
 <p>We provide an example illustrating the use of the cross-validation
 function <code><a href="../reference/cv.cox_indi.html">cv.cox_indi()</a></code> under the <code>V&amp;VH</code>
 criterion.</p>
@@ -381,8 +383,8 @@ to select the integration parameter in the KL-integrated Cox model. We
 consider four criteria: two based on Harrell’s C-index <span class="citation">(Harrell et al. 1982)</span>—<code>CIndex_pooled</code>
 and <code>CIndex_foldaverage</code>—and two loss-based
 criteria—<code>LinPred</code> and <code>V&amp;VH</code>. For details,
-please refer to <em>Appendix: CV Criteria</em>. Below is an example
-using the default <code>"V&amp;VH"</code> criterion:</p>
+please refer to Page: <em>Appendix: CV Criteria</em>. Below is an
+example using the default <code>"V&amp;VH"</code> criterion:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cvfit.coxkl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.coxkl.html">cv.coxkl</a></span><span class="op">(</span></span>
 <span>  z <span class="op">=</span> <span class="va">z</span>,</span>
@@ -626,7 +628,7 @@ for that
 1982)</span>—<code>CIndex_pooled</code> and
 <code>CIndex_foldaverage</code>—and two loss-based
 criteria—<code>LinPred</code> and <code>V&amp;VH</code>. For details,
-please refer to <em>Appendix: CV Criteria</em>.</p>
+please refer to Page: <em>Appendix: CV Criteria</em>.</p>
 <p>Below we demonstrate tuning
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>
 using 5-fold cross-validation and the <code>V&amp;VH</code> criterion
@@ -929,8 +931,8 @@ to select the integration parameter in the KL-integrated Cox model. We
 consider four criteria: two based on Harrell’s C-index <span class="citation">(Harrell et al. 1982)</span>—<code>CIndex_pooled</code>
 and <code>CIndex_foldaverage</code>—and two loss-based
 criteria—<code>LinPred</code> and <code>V&amp;VH</code>. For details,
-please refer to <em>Appendix: CV Criteria</em>. Below is an example
-using the default <code>"V&amp;VH"</code> criterion:</p>
+please refer to Page: <em>Appendix: CV Criteria</em>. Below is an
+example using the default <code>"V&amp;VH"</code> criterion:</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cvfit.cox_MDTL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/cv.cox_MDTL.html">cv.cox_MDTL</a></span><span class="op">(</span></span>
 <span>  z <span class="op">=</span> <span class="va">z</span>,</span>
@@ -1085,7 +1087,7 @@ for that
 1982)</span>—<code>CIndex_pooled</code> and
 <code>CIndex_foldaverage</code>—and two loss-based
 criteria—<code>LinPred</code> and <code>V&amp;VH</code>. For details,
-please refer to <em>Appendix: CV Criteria</em>.</p>
+please refer to Page: <em>Appendix: CV Criteria</em>.</p>
 <p>Below we demonstrate tuning
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>
 using 5-fold cross-validation and the <code>V&amp;VH</code> criterion
@@ -1208,7 +1210,7 @@ cross-validation to tune the integration parameter
 <p>The supported criteria include predicted deviance
 (<code>loss</code>), <code>AUC</code> <span class="citation">(Hanley and
 McNeil 1982)</span>, and Brier Score (<code>Brier</code>)<span class="citation">(Glenn et al. 1950)</span>. For details, please refer
-to <em>Appendix: CV Criteria</em>.</p>
+to Page: <em>Appendix: CV Criteria</em>.</p>
 <p>Below we demonstrate tuning
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>
 using 5-fold cross-validation and the <code>V&amp;VH</code> criterion
@@ -1320,7 +1322,7 @@ at which the cross-validated loss is minimized.</p>
 </div>
 </div>
 <div class="section level2 unnumbered">
-<h2 class="unnumbered" id="references">3. References<a class="anchor" aria-label="anchor" href="#references"></a>
+<h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
 <div id="ref-breslow1974covariance" class="csl-entry">

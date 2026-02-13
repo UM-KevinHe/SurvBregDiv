@@ -73,9 +73,9 @@ For time-to-event outcomes, we consider two broad classes of evaluation criteria
 
 - Two partial-likelihood–based criteria are included for cross-validation: the Van Houwelingen (V\&VH) likelihood method [@verweij1993cross] and a linear-predictor–based predictive deviance criterion (LinPred).
 
-  - **`"Deviance"`**
+  - **`"LinPred"`**
 
-    The Deviance criterion evaluates out-of-sample performance via cross-validated partial likelihood.  
+    The LinPred criterion evaluates out-of-sample performance via cross-validated partial likelihood.  
     In each fold, the model is fit on the training subset and the estimated coefficients are applied to the held-out subset to obtain predicted linear predictors.  
     These cross-validated predictors are then combined and used to evaluate the partial likelihood.  
     This procedure yields an out-of-sample analogue of the Cox partial likelihood deviance and can therefore be interpreted as a predictive deviance, equivalent to a cross-entropy–based measure of goodness of fit [@simon2011regularization].
@@ -85,14 +85,16 @@ For time-to-event outcomes, we consider two broad classes of evaluation criteria
     The V\&VH criterion averages, across folds, the difference between the log-partial likelihood evaluated on each fold-specific training set and that of the full dataset.  
     While this approach preserves the full risk-set structure, it is computationally more demanding and may be sensitive to high-leverage observations.
     
+
+---
     
-## Cross-validation Criterion for Matched Case–Control Studies
+## Cross-validation Criterion for (Nested) Case–Control Studies
     
 Predictive performance under matched study designs is evaluated conditionally within matched sets, reflecting the structure induced by matching rather than a marginal population-based sampling scheme. We consider three complementary aspects of predictive accuracy: discrimination, calibration, and goodness-of-fit. All evaluation metrics are computed on an independent test set composed of matched sets.
 
 Let $s = 1,\ldots,S$ index matched sets, and let $\mathcal{M}_s$ denote the subjects in set $s$. For subject $i \in \mathcal{M}_s$, we denote the binary outcome by $Y_i^{(s)} \in \{0,1\}$ and the model-based risk score by $\hat r(\mathbf{Z}_i^{(s)})$, where larger values indicate higher predicted risk. When probability-based metrics are required, the risk score is transformed into a predicted probability $\hat p_i^{(s)}$ using an appropriate link function consistent with the fitted model.
 
-**Predictive Deviance**
+**Predictive Deviance (`"loss"`)**
 
 Goodness-of-fit assesses how well the fitted working model agrees with the distribution of the held-out test data at the likelihood level, conditional on the matched case--control design. Let $s = 1,\ldots,S$ index matched sets, and let $\ell_s(\widehat{\boldsymbol{\beta}})$ denote the conditional log-likelihood contribution of matched set $s$ under the coefficient vector $\widehat{\boldsymbol{\beta}}$. Summing across matched sets yields the total conditional log-likelihood
 
@@ -112,7 +114,7 @@ $$
 
 where $n$ denotes the total number of subjects in the test data. Smaller values indicate better agreement between the fitted model and the observed outcomes on held-out matched sets.
 
-**Matched-set AUC**
+**Matched-set AUC (`"AUC"` or  `"CIndex"`)**
 
 In matched case--control studies, each case is paired with one or more controls according to predefined matching criteria, and model discrimination is evaluated through comparisons restricted within matched sets. We use matched-set AUC to evaluate the discrimination ability [@hanley1982meaning]. Let $s = 1,\ldots,S$ index matched sets, and let $\mathcal{M}_s$ denote the subjects in set $s$, which contains one case ($Y_i=1$) and $m$ matched controls ($Y_j=0$). For each subject, we compute a risk score $\hat r(\mathbf{Z}_i)$ from the fitted model.
 
@@ -141,9 +143,9 @@ $$
 
 where $w_s$ is proportional to the number of comparable pairs in set $s$. This criterion evaluates the model’s ability to correctly rank cases above their matched controls and is fully determined by the matched case--control structure, without reliance on prospective follow-up times, censoring indicators, or estimation of a baseline hazard.
 
-Nested case--control (NCC) studies arise as a special case of matched case--control designs, where controls are sampled from the risk set at each observed event time in an underlying cohort. Although the matching mechanism is time-dependent in NCC studies, discrimination can be evaluated using the same matched-set AUC defined above. In particular, the resulting AUC is numerically equivalent to the concordance index evaluated on the sampled risk sets, since each matched set corresponds to a valid risk set at the event time and the associated case--control comparisons coincide with concordance comparisons in the Cox model.
+Nested case--control (NCC) studies arise as a special case of matched case--control designs, where controls are sampled from the risk set at each observed event time in an underlying cohort. Although the matching mechanism is time-dependent in NCC studies, discrimination can be evaluated using the same matched-set AUC defined above. In particular, the resulting AUC is numerically equivalent to the concordance index (`"CIndex"`) evaluated on the sampled risk sets, since each matched set corresponds to a valid risk set at the event time and the associated case--control comparisons coincide with concordance comparisons in the Cox model.
 
-**Brier Score**
+**Brier Score  (`"Brier"`)**
 
 Calibration evaluates the agreement between predicted risks and observed outcomes at the individual level. Under matched case--control designs, where the outcome is binary and comparisons are conditioned on matched sets, calibration can be assessed using the Brier score [@glenn1950verification]. Let $Y_i^{(s)} \in \{0,1\}$ denote the case--control status of subject $i$ in matched set $s$, and let $\hat p_i^{(s)}$ denote the model-based predicted probability of being a case, obtained by transforming the risk score $\hat r(\mathbf{Z}_i^{(s)})$ through an appropriate link function.
 
@@ -163,7 +165,7 @@ $$
 where $n$ denotes the total number of subjects in the test data. Smaller values of the Brier score indicate better calibration and overall predictive accuracy.
     
     
-    
+## Reference
     
     
     

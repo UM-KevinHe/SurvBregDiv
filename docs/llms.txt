@@ -192,9 +192,8 @@ If you encounter problems or bugs, please contact us:
 
 ### Get started
 
-- [SurvBregDiv: Transfer Learning for Time-to-Event Modelling via
-  Bregman
-  Divergence](https://um-kevinhe.github.io/SurvBregDiv/articles/SurvBregDiv.md):
+- [SurvBregDiv: Bregman Divergence Data Integration for Time-to-Event
+  Modelling](https://um-kevinhe.github.io/SurvBregDiv/articles/SurvBregDiv.md):
 
 ### Appendix
 

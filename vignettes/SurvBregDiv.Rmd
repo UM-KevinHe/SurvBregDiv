@@ -1,12 +1,12 @@
 ---
-title: "SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence"
+title: "SurvBregDiv: Bregman Divergence Data Integration for Time-to-Event Modelling"
 output:
   bookdown::html_document2:
     toc: true
     toc_depth: 6
     number_sections: true
 vignette: >
-  %\VignetteIndexEntry{SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence}
+  %\VignetteIndexEntry{SurvBregDiv: Bregman Divergence Data Integration for Time-to-Event Modelling}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 editor_options:
@@ -18,6 +18,7 @@ bibliography: references.bib
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
+  # eval = FALSE,
   eval = TRUE,
   warning = FALSE,
   message = FALSE
@@ -42,28 +43,25 @@ While Bregman divergence has been successfully applied to borrowing information 
 
 Beyond full-cohort survival studies, many biomedical investigations rely on the nested case–control (NCC) design to alleviate the burden of labor-intensive measurements, high-cost data acquisition, and destructive or finite biospecimen assays. Under an NCC design, only a small number of matched controls are sampled at each failure time, producing survival data that are analyzed through conditional logistic regression applied to matched risk sets. Despite its practical relevance, no existing methodology or software supports transfer learning or external information borrowing under NCC designs.
 
-The `SurvBregDiv` package addresses these challenges by providing a unified transfer-learning framework for both full-cohort Cox data and nested case–control designs. The methods integrate external information in a privacy-preserving manner and are applicable to both low-dimensional settings and high-dimensional variable selection with ridge, lasso, and elastic net penalties.
+The `SurvBregDiv` package addresses these challenges by providing a unified Bregman Divergence transfer-learning framework for both full-cohort Cox data and nested case–control designs. The methods integrate external information in a privacy-preserving manner and are applicable to both low-dimensional settings and high-dimensional variable selection with ridge, lasso, and elastic net penalties.
 
 
 ### Key Features
 
-- **Transfer learning via KL/Bregman shrinkage**  
+- **Transfer learning via Bregman Divergence**  
   Integrates external information through Bregman divergence–based penalization, enabling adaptive borrowing from heterogeneous data sources.
-
+  
+- **Flexible external information formats**  
+  Supports incorporation of external information provided either as individual-level data or as summary-level inputs, such as regression coefficients, risk scores, or information defined on partially overlapping covariate sets.
+  
 - **Privacy-preserving external information use**  
-  Operates on summary-level external inputs—such as fitted coefficients or risk scores—without requiring individual-level external data access.
+  Allow summary-level external inputs—such as fitted coefficients or risk scores—without requiring individual-level external data access.
 
 - **Heterogeneity-aware borrowing**  
   Accommodates population differences through tuning-parameter–controlled shrinkage, selectively borrowing strength only when sources are compatible.
 
 - **High-dimensional modeling with regularization**  
   Supports penalized KL-integrated models, including ridge, lasso, and elastic net penalties for variable selection and shrinkage.
-
-- **Flexible external information formats**  
-  Allows external inputs in the form of coefficients, risk scores, or partially overlapping covariate sets.
-
-- **Built-in cross-validation for tuning**  
-  Provides cross-validation criteria tailored for survival outcomes, including C-index, predicted deviance, and V&VH loss.
 
 This vignette introduces the core functionalities of `SurvBregDiv` and illustrates workflows for both low- and high-dimensional applications.
 
@@ -158,7 +156,7 @@ fit.cox_indi <- cox_indi(
 )
 ```
 
-For hyperparameter tuning of $\eta$, we aim to select the value of $\eta$ that yields the best predictive performance. We adopt cross-validation and consider four criteria: two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to *Appendix: CV Criteria*.
+For hyperparameter tuning of $\eta$, we aim to select the value of $\eta$ that yields the best predictive performance. We adopt cross-validation and consider four criteria: two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to Page: *Appendix: CV Criteria*.
 
 We provide an example illustrating the use of the cross-validation function `cv.cox_indi()` under the `V&VH` criterion.
 
@@ -238,7 +236,7 @@ fit.coxkl.RS <- coxkl(
 )
 ```
 
-The function `cv.coxkl()` performs $K$-fold cross-validation (default $K = 5$) to select the integration parameter in the KL-integrated Cox model. We consider four criteria: two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to *Appendix: CV Criteria*. Below is an example using the default `"V&VH"` criterion:
+The function `cv.coxkl()` performs $K$-fold cross-validation (default $K = 5$) to select the integration parameter in the KL-integrated Cox model. We consider four criteria: two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to Page: *Appendix: CV Criteria*. Below is an example using the default `"V&VH"` criterion:
 
 ```{r}
 cvfit.coxkl <- cv.coxkl(
@@ -392,7 +390,7 @@ For penalized KL-integrated models, the functions `cv.coxkl_ridge()` and `cv.cox
 - selects the best $\lambda$ for that $\eta$,
 - aggregates the performance across folds into summary tables.
 
-The supported criteria also include two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to *Appendix: CV Criteria*.
+The supported criteria also include two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to Page: *Appendix: CV Criteria*.
 
 
 Below we demonstrate tuning $\eta$ using 5-fold cross-validation and the `V&VH` criterion for the LASSO-penalized integrated model (`alpha = 1`). The range of integration weights $\eta$ can be generated by using the function `generate_eta()`. The user should rely on prior knowledge or problem-specific considerations to determine an appropriate range. (For ridge, use `cv.coxkl_ridge()` analogously.)
@@ -584,7 +582,7 @@ plot(
 ```
 
 
-The function `cv.cox_MDTL()` performs $K$-fold cross-validation (default $K = 5$) to select the integration parameter in the KL-integrated Cox model. We consider four criteria: two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to *Appendix: CV Criteria*. Below is an example using the default `"V&VH"` criterion:
+The function `cv.cox_MDTL()` performs $K$-fold cross-validation (default $K = 5$) to select the integration parameter in the KL-integrated Cox model. We consider four criteria: two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to Page: *Appendix: CV Criteria*. Below is an example using the default `"V&VH"` criterion:
 
 ```{r}
 cvfit.cox_MDTL <- cv.cox_MDTL(
@@ -687,7 +685,7 @@ For penalized KL-integrated models, the functions `cv.cox_MDTL_ridge()` and `cv.
 - selects the best $\lambda$ for that $\eta$,
 - aggregates the performance across folds into summary tables.
 
-The supported criteria also include two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to *Appendix: CV Criteria*.
+The supported criteria also include two based on Harrell's C-index [@harrell1982evaluating]---`CIndex_pooled` and `CIndex_foldaverage`---and two loss-based criteria---`LinPred` and `V&VH`. For details, please refer to Page: *Appendix: CV Criteria*.
 
 Below we demonstrate tuning $\eta$ using 5-fold cross-validation and the `V&VH` criterion for the LASSO-penalized integrated model (`alpha = 1`). The range of integration weights $\eta$ can be generated by using the function `generate_eta()`. The user should rely on prior knowledge or problem-specific considerations to determine an appropriate range. (For ridge, use `cv.cox_MDTL_ridge()` analogously.)
 
@@ -770,7 +768,7 @@ plot(
 
 Cross-validation for tuning $\eta$ can be performed via `cv.clogitkl()`, which performs K-fold cross-validation to tune the integration parameter $\eta$.
 
-The supported criteria include predicted deviance (`loss`), `AUC` [@hanley1982meaning], and Brier Score (`Brier`)[@glenn1950verification]. For details, please refer to *Appendix: CV Criteria*.
+The supported criteria include predicted deviance (`loss`), `AUC` [@hanley1982meaning], and Brier Score (`Brier`)[@glenn1950verification]. For details, please refer to Page: *Appendix: CV Criteria*.
 
 
 Below we demonstrate tuning $\eta$ using 5-fold cross-validation and the `V&VH` criterion for the LASSO-penalized integrated model (`alpha = 1`). The range of integration weights $\eta$ can be generated by using the function `generate_eta()`. The user should rely on prior knowledge or problem-specific considerations to determine an appropriate range. (For ridge, use `cv.coxkl_ridge()` analogously.)
@@ -866,4 +864,4 @@ cv.plot(cv.clogitkl_enet_fit)
 The plot displays a purple curve tracing the cross-validated performance across the $\eta$ grid, a green dotted horizontal line representing the internal baseline at `eta = 0` (with a green point marking its value), and a vertical dashed orange line indicating the optimal $\eta$ at which the cross-validated loss is minimized.
 
 
-## 3. References
+## References

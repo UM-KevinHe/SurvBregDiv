@@ -1,5 +1,0 @@
-# Methods
-
-``` r
-library(SurvBregDiv)
-```

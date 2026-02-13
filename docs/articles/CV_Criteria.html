@@ -8,9 +8,13 @@
 <title>Cross-validation Criteria • SurvBregDiv</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/Roboto-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/JetBrains_Mono-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/Roboto_Slab-0.4.10/font.css" rel="stylesheet">
+<link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Cross-validation Criteria">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><link href="../extra.css" rel="stylesheet">
+<meta property="og:title" content="Cross-validation Criteria">
 <!-- Global site tag (gtag.js) - Google Analytics --><script async src="https://www.googletagmanager.com/gtag/js?id=UA-54921687-5"></script><script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
@@ -155,8 +159,8 @@ cross-validation: the Van Houwelingen (V&amp;VH) likelihood method <span class="
 linear-predictor–based predictive deviance criterion (LinPred).</p>
 <ul>
 <li>
-<p><strong><code>"Deviance"</code></strong></p>
-<p>The Deviance criterion evaluates out-of-sample performance via
+<p><strong><code>"LinPred"</code></strong></p>
+<p>The LinPred criterion evaluates out-of-sample performance via
 cross-validated partial likelihood.<br>
 In each fold, the model is fit on the training subset and the estimated
 coefficients are applied to the held-out subset to obtain predicted
@@ -180,9 +184,10 @@ observations.</p>
 </ul>
 </li>
 </ul>
+<hr>
 </div>
 <div class="section level2">
-<h2 id="cross-validation-criterion-for-matched-casecontrol-studies">Cross-validation Criterion for Matched Case–Control Studies<a class="anchor" aria-label="anchor" href="#cross-validation-criterion-for-matched-casecontrol-studies"></a>
+<h2 id="cross-validation-criterion-for-nested-casecontrol-studies">Cross-validation Criterion for (Nested) Case–Control Studies<a class="anchor" aria-label="anchor" href="#cross-validation-criterion-for-nested-casecontrol-studies"></a>
 </h2>
 <p>Predictive performance under matched study designs is evaluated
 conditionally within matched sets, reflecting the structure induced by
@@ -207,7 +212,7 @@ probability-based metrics are required, the risk score is transformed
 into a predicted probability
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mover><mi>p</mi><mo accent="true">̂</mo></mover><mi>i</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>s</mi><mo stretchy="true" form="postfix">)</mo></mrow></msubsup><annotation encoding="application/x-tex">\hat p_i^{(s)}</annotation></semantics></math>
 using an appropriate link function consistent with the fitted model.</p>
-<p><strong>Predictive Deviance</strong></p>
+<p><strong>Predictive Deviance (<code>"loss"</code>)</strong></p>
 <p>Goodness-of-fit assesses how well the fitted working model agrees
 with the distribution of the held-out test data at the likelihood level,
 conditional on the matched case–control design. Let
@@ -237,7 +242,8 @@ defined as</p>
 denotes the total number of subjects in the test data. Smaller values
 indicate better agreement between the fitted model and the observed
 outcomes on held-out matched sets.</p>
-<p><strong>Matched-set AUC</strong></p>
+<p><strong>Matched-set AUC (<code>"AUC"</code> or
+<code>"CIndex"</code>)</strong></p>
 <p>In matched case–control studies, each case is paired with one or more
 controls according to predefined matching criteria, and model
 discrimination is evaluated through comparisons restricted within
@@ -294,10 +300,11 @@ each observed event time in an underlying cohort. Although the matching
 mechanism is time-dependent in NCC studies, discrimination can be
 evaluated using the same matched-set AUC defined above. In particular,
 the resulting AUC is numerically equivalent to the concordance index
-evaluated on the sampled risk sets, since each matched set corresponds
-to a valid risk set at the event time and the associated case–control
-comparisons coincide with concordance comparisons in the Cox model.</p>
-<p><strong>Brier Score</strong></p>
+(<code>"CIndex"</code>) evaluated on the sampled risk sets, since each
+matched set corresponds to a valid risk set at the event time and the
+associated case–control comparisons coincide with concordance
+comparisons in the Cox model.</p>
+<p><strong>Brier Score (<code>"Brier"</code>)</strong></p>
 <p>Calibration evaluates the agreement between predicted risks and
 observed outcomes at the individual level. Under matched case–control
 designs, where the outcome is binary and comparisons are conditioned on
@@ -330,6 +337,10 @@ Y_i^{(s)} - \hat p_i^{(s)}
 denotes the total number of subjects in the test data. Smaller values of
 the Brier score indicate better calibration and overall predictive
 accuracy.</p>
+</div>
+<div class="section level2 unnumbered">
+<h2 class="unnumbered" id="reference">Reference<a class="anchor" aria-label="anchor" href="#reference"></a>
+</h2>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
 <div id="ref-glenn1950verification" class="csl-entry">
 Glenn, W Brier et al. 1950. <span>“Verification of Forecasts Expressed

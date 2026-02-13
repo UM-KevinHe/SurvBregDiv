@@ -2,10 +2,16 @@ url: https://um-kevinhe.github.io/SurvBregDiv/
 
 template:
   bootstrap: 5
+  bslib:
+    base_font: {google: "Roboto"}
+    heading_font: {google: "Roboto Slab"}
+    code_font: {google: "JetBrains Mono"}
   params:
     bootswatch: lumen
     ganalytics: UA-54921687-5
     mathjax: true
+  in_header:
+    - pkgdown/extra.css
 
 toc:
   depth: 6

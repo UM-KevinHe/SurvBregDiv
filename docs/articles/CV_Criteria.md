@@ -76,9 +76,9 @@ criteria:
   (Verweij and Van Houwelingen 1993) and a linear-predictor–based
   predictive deviance criterion (LinPred).
 
-  - **`"Deviance"`**
+  - **`"LinPred"`**
 
-    The Deviance criterion evaluates out-of-sample performance via
+    The LinPred criterion evaluates out-of-sample performance via
     cross-validated partial likelihood.  
     In each fold, the model is fit on the training subset and the
     estimated coefficients are applied to the held-out subset to obtain
@@ -99,7 +99,9 @@ criteria:
     computationally more demanding and may be sensitive to high-leverage
     observations.
 
-## Cross-validation Criterion for Matched Case–Control Studies
+------------------------------------------------------------------------
+
+## Cross-validation Criterion for (Nested) Case–Control Studies
 
 Predictive performance under matched study designs is evaluated
 conditionally within matched sets, reflecting the structure induced by
@@ -117,7 +119,7 @@ are required, the risk score is transformed into a predicted probability
 $`\hat p_i^{(s)}`$ using an appropriate link function consistent with
 the fitted model.
 
-**Predictive Deviance**
+**Predictive Deviance (`"loss"`)**
 
 Goodness-of-fit assesses how well the fitted working model agrees with
 the distribution of the held-out test data at the likelihood level,
@@ -147,7 +149,7 @@ where $`n`$ denotes the total number of subjects in the test data.
 Smaller values indicate better agreement between the fitted model and
 the observed outcomes on held-out matched sets.
 
-**Matched-set AUC**
+**Matched-set AUC (`"AUC"` or `"CIndex"`)**
 
 In matched case–control studies, each case is paired with one or more
 controls according to predefined matching criteria, and model
@@ -201,11 +203,12 @@ each observed event time in an underlying cohort. Although the matching
 mechanism is time-dependent in NCC studies, discrimination can be
 evaluated using the same matched-set AUC defined above. In particular,
 the resulting AUC is numerically equivalent to the concordance index
-evaluated on the sampled risk sets, since each matched set corresponds
-to a valid risk set at the event time and the associated case–control
-comparisons coincide with concordance comparisons in the Cox model.
+(`"CIndex"`) evaluated on the sampled risk sets, since each matched set
+corresponds to a valid risk set at the event time and the associated
+case–control comparisons coincide with concordance comparisons in the
+Cox model.
 
-**Brier Score**
+**Brier Score (`"Brier"`)**
 
 Calibration evaluates the agreement between predicted risks and observed
 outcomes at the individual level. Under matched case–control designs,
@@ -235,6 +238,8 @@ Y_i^{(s)} - \hat p_i^{(s)}
 where $`n`$ denotes the total number of subjects in the test data.
 Smaller values of the Brier score indicate better calibration and
 overall predictive accuracy.
+
+## Reference
 
 Glenn, W Brier et al. 1950. “Verification of Forecasts Expressed in
 Terms of Probability.” *Monthly Weather Review* 78 (1): 1–3.
