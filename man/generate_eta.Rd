@@ -42,6 +42,6 @@ is never created.
 generate_eta(method = "exponential", n = 10, max_eta = 5)
 
 # Generate 5 linearly spaced eta values up to 3
-generate_eta(method = "linear", n = 5, max_eta = 3)
+generate_eta(method = "linear", n = 5, min_eta= 0, max_eta = 3)
 
 }

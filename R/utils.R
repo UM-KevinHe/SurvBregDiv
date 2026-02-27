@@ -17,7 +17,7 @@
 #'     equals \code{max_eta}.
 #'   \item \emph{Linear}: the current implementation calls
 #'     \code{seq(min_eta, max_eta, length.out = n)} and therefore assumes a
-#'     numeric object \code{min_eta} exists in the calling environment. 
+#'     numeric object \code{min_eta} exists in the calling environment.
 #' }
 #' Only the exact strings \dQuote{linear} and \dQuote{exponential} are supported;
 #' other values for \code{method} will result in an error because \code{eta_values}
@@ -30,7 +30,7 @@
 #' generate_eta(method = "exponential", n = 10, max_eta = 5)
 #'
 #' # Generate 5 linearly spaced eta values up to 3
-#' generate_eta(method = "linear", n = 5, max_eta = 3)
+#' generate_eta(method = "linear", n = 5, min_eta= 0, max_eta = 3)
 #'
 #' @export
 generate_eta <- function(method = "exponential", n = 10, max_eta = 5, min_eta = 0) {
@@ -47,29 +47,29 @@ generate_eta <- function(method = "exponential", n = 10, max_eta = 5, min_eta = 
 
 c_stat_stratcox <- function(time, xbeta, stratum, delta) {
   stratum <- factor(stratum)
-  
+
   ord <- order(stratum, time, -delta)
   time <- time[ord]
   xbeta <- xbeta[ord]
   stratum <- stratum[ord]
   delta <- delta[ord]
-  
+
   # Only evaluate strata with at least 2 individuals
   stratum_sizes <- table(stratum)
   valid_strata <- names(stratum_sizes[stratum_sizes > 1])
-  
+
   # Compute per-stratum concordance
   count <- sapply(valid_strata, function(s) {
     idx <- stratum == s
     cox_c_index(time[idx], xbeta[idx], delta[idx])
   })
-  
+
   numer <- Reduce(`+`, count["numer", ])
   denom <- Reduce(`+`, count["denom", ])
   c_stat <- numer / denom
-  
-  return(list(numer = numer, 
-              denom = denom, 
+
+  return(list(numer = numer,
+              denom = denom,
               c_statistic = c_stat))
 }
 
@@ -120,32 +120,32 @@ auc_stratified <- function(y, score, stratum) {
 get_fold <- function(nfolds = 5, delta, stratum) {
   n <- length(delta)
   fold <- integer(n)
-  
+
   stratum <- as.factor(stratum)
   strata_levels <- levels(stratum)
-  
+
   for (s in strata_levels) {
     idx <- which(stratum == s)
     delta_s <- delta[idx]
-    
+
     ind1 <- which(delta_s == 1)
     ind0 <- which(delta_s == 0)
-    
+
     n1 <- length(ind1)
     n0 <- length(ind0)
-    
+
     fold1 <- 1:n1 %% nfolds
     fold0 <- (n1 + 1:n0) %% nfolds
     fold1[fold1 == 0] <- nfolds
     fold0[fold0 == 0] <- nfolds
-    
+
     fold_s <- integer(length(idx))
     fold_s[ind1] <- sample(fold1)
     fold_s[ind0] <- sample(fold0)
-    
+
     fold[idx] <- fold_s
   }
-  
+
   return(fold)
 }
 
@@ -158,29 +158,29 @@ get_fold_cc <- function(nfolds = 5, delta, stratum) { ## for case-control data
 
   events_per_stratum <- tapply(delta, stratum, function(x) sum(x == 1))
   size_per_stratum   <- tapply(delta, stratum, length)
-  
+
   ord <- order(events_per_stratum, size_per_stratum, decreasing = TRUE)
   strata_ord <- strata_levels[ord]
 
   fold_events <- rep(0, nfolds)
   fold_sizes  <- rep(0, nfolds)
-  
+
   ## Fold assignment at stratum level
   fold_by_stratum <- integer(n_strata)
   names(fold_by_stratum) <- strata_levels
-  
+
   for (s in strata_ord) {
     scores <- fold_events + 1e-6 * fold_sizes
     best_fold <- which.min(scores)
-    
+
     fold_by_stratum[s] <- best_fold
     fold_events[best_fold] <- fold_events[best_fold] + events_per_stratum[s]
     fold_sizes[best_fold]  <- fold_sizes[best_fold]  + size_per_stratum[s]
   }
-  
+
   fold <- fold_by_stratum[as.character(stratum)]
   fold <- as.integer(fold)
-  
+
   return(fold)
 }
 
@@ -189,17 +189,17 @@ cc_loglik <- function(y, lp, stratum) {
   if (length(y) != length(lp) || length(y) != length(stratum)) {
     stop("Lengths of y, lp, and stratum must match in cc_loglik().", call. = FALSE)
   }
-  
+
   events_per_stratum <- tapply(y, stratum, function(x) sum(x == 1))
   if (any(is.na(events_per_stratum)) || any(events_per_stratum != 1)) {
     stop("cc_loglik() assumes each stratum has exactly one case.", call. = FALSE)
   }
-  
+
   ord <- order(stratum, -y)
   lp_ord    <- lp[ord]
   delta_ord <- y[ord]
   n_each_stratum <- as.numeric(table(stratum[ord]))
-  
+
   pl_cal_theta(
     lp              = lp_ord,
     delta           = delta_ord,
@@ -213,23 +213,23 @@ cc_auc <- function(y, lp, stratum) {
   if (length(y) != length(lp) || length(y) != length(stratum)) {
     stop("Lengths of y, lp, and stratum must match in cc_auc().", call. = FALSE)
   }
-  
+
   split_y  <- split(y,  stratum)
   split_lp <- split(lp, stratum)
-  
+
   numer <- 0
   denom <- 0
-  
+
   for (s in seq_along(split_y)) {
     y_s  <- split_y[[s]]
     lp_s <- split_lp[[s]]
-    
+
     if (sum(y_s == 1) != 1L) next
     if (sum(y_s == 0) < 1L)  next
-    
+
     lp_case  <- lp_s[y_s == 1L]
     lp_ctrls <- lp_s[y_s == 0L]
-    
+
     for (sc in lp_ctrls) {
       if (lp_case > sc) {
         numer <- numer + 1
@@ -239,7 +239,7 @@ cc_auc <- function(y, lp, stratum) {
       denom <- denom + 1
     }
   }
-  
+
   if (denom == 0) return(NA_real_)
   numer / denom
 }
@@ -251,43 +251,43 @@ cc_brier <- function(y, lp, stratum) {
   if (length(y) != length(lp) || length(y) != length(stratum)) {
     stop("Lengths of y, lp, and stratum must match in cc_brier().", call. = FALSE)
   }
-  
+
   split_y  <- split(y,  stratum)
   split_lp <- split(lp, stratum)
-  
+
   se_sum <- 0
   n_tot  <- length(y)
-  
+
   for (s in seq_along(split_y)) {
     y_s  <- split_y[[s]]
     lp_s <- split_lp[[s]]
-    
+
     m_s   <- max(lp_s)
     exp_s <- exp(lp_s - m_s)
     p_s   <- exp_s / sum(exp_s)
-    
+
     se_sum <- se_sum + sum((y_s - p_s)^2)
   }
-  
+
   se_sum / n_tot
 }
 
 vcov_Estimate <- function(z, delta, time, stratum, beta_hat, lambda = 0) {
-  
+
   if (missing(stratum)) {
     stratum <- matrix(1, nrow = nrow(z))
     colnames(stratum) <- "stratum"
   } else {
     stratum <- as.matrix(match(stratum, unique(stratum)))
   }
-  
+
   ord <- order(stratum, time)
   stratum <- stratum[ord, , drop = FALSE]
   z <- as.matrix(z[ord, , drop = FALSE])
   delta <- delta[ord]
-  
+
   n.each_stratum <- as.numeric(table(stratum))
-  
+
   vcov_mat <- Cox_Vcov(
     Z = z,
     delta = delta,
@@ -295,7 +295,7 @@ vcov_Estimate <- function(z, delta, time, stratum, beta_hat, lambda = 0) {
     n_each_stratum = n.each_stratum,
     lambda = lambda
   )
-  
+
   se_beta <- sqrt(diag(vcov_mat))
   list(vcov = vcov_mat, se = se_beta)
 }
@@ -306,13 +306,13 @@ vcov_Estimate <- function(z, delta, time, stratum, beta_hat, lambda = 0) {
 #' Setup Lambda Sequence for Cox–KL Model (Internal)
 #'
 #' Generates a sequence of penalty parameters (`lambda`) and initializes coefficients
-#' for the Cox–KL model. The maximum lambda (`lambda.max`) is defined as the 
-#' smallest value that shrinks all coefficients (`beta`) to zero. Note that different 
+#' for the Cox–KL model. The maximum lambda (`lambda.max`) is defined as the
+#' smallest value that shrinks all coefficients (`beta`) to zero. Note that different
 #' values of `eta` will produce different `lambda` sequences.
 #' @keywords internal
 #' @noRd
 setupLambdaCoxKL <- function(Z, time, delta, delta_tilde, RS, beta.init, stratum,
-                             group, group.multiplier, n.each_stratum, alpha, 
+                             group, group.multiplier, n.each_stratum, alpha,
                              eta, nlambda, lambda.min.ratio) {
   n <- nrow(Z)
   K <- table(group)
@@ -322,11 +322,18 @@ setupLambdaCoxKL <- function(Z, time, delta, delta_tilde, RS, beta.init, stratum
     nullFit <- coxkl(Z[, group == 0, drop = FALSE], delta, time, stratum, RS, beta = NULL, eta)
     LinPred <- nullFit$linear.predictors[[1]]
     beta.init <- c(nullFit$beta[[1]], rep(0, length(beta.init) - length(nullFit$beta[[1]])))
-    rsk <- c()  
+    rsk <- c()
     for (i in seq_along(unique(stratum))){
       rsk <- c(rsk, rev(cumsum(rev(exp(LinPred[stratum == i])))))
     }
-    r <- (delta + eta * delta_tilde)/(1 + eta) - exp(LinPred) * cumsum(delta / rsk)
+    # r <- (delta + eta * delta_tilde)/(1 + eta) - exp(LinPred) * cumsum(delta / rsk)
+
+    r <- numeric(length(delta))
+    for (i in seq_along(unique(stratum))) {
+      idx <- which(stratum == i)
+      r[idx] <- (delta[idx] + eta * delta_tilde[idx]) / (1 + eta) -
+        exp(LinPred[idx]) * cumsum(delta[idx] / rsk[idx])
+    }
   } else { ## all covariates are penalized
     w <- c()
     h <- c()
@@ -338,11 +345,11 @@ setupLambdaCoxKL <- function(Z, time, delta, delta_tilde, RS, beta.init, stratum
     r <- (delta + eta * delta_tilde)/(1 + eta) - h
     beta.init <- beta.init
   }
-  
+
   ## Determine lambda.max
   zmax <- maxgrad(Z, r, K1, as.double(group.multiplier)) / n
   lambda.max <- zmax/alpha
-  
+
   if (lambda.min.ratio == 0){
     lambda <- c(exp(seq(log(lambda.max), log(1e-7 * lambda.max), len = nlambda-1)), 0)
   } else {
@@ -453,7 +460,7 @@ orthogonalize <- function(Z, group) {
   colnames(orthog.Z) <- z.names
   # unpenalized group will not be orthogonalized
   orthog.Z[, which(group == 0)] <- Z[, which(group == 0)]
-  
+
   # SVD and generate orthogonalized X
   for (j in seq_along(integer(J))) {
     ind <- which(group == j)
@@ -500,7 +507,7 @@ newZG.Std <- function(Z, g, m){
   std.Z <- std[[1]]
   center <- std[[2]]
   scale <- std[[3]]
-  
+
   small_scales <- which(scale <= 1e-6)
   if (length(small_scales) > 0) {
     stop(
@@ -510,7 +517,7 @@ newZG.Std <- function(Z, g, m){
       )
     )
   }
-  
+
   nz <- which(scale > 1e-6)   # non-constant columns
   if (length(nz) != ncol(Z)) {
     std.Z <- std.Z[, nz, drop = F]
@@ -547,8 +554,8 @@ newZG.Unstd <- function(Z, g, m){
     sqrt(sum((x - mean(x))^2)/length(x))
   }
   scale <- apply(as.matrix(Z), 2, mysd)
-  
-  
+
+
   small_scales <- which(scale <= 1e-6)
   if (length(small_scales) > 0) {
     stop(
@@ -558,7 +565,7 @@ newZG.Unstd <- function(Z, g, m){
       )
     )
   }
-  
+
   nz <- which(scale > 1e-6) #remove constant columns
   if (length(nz) != ncol(Z)) {
     std.Z <- Z[, nz, drop = F]
@@ -586,12 +593,12 @@ newZG.Unstd <- function(Z, g, m){
 loss.coxkl_highdim <- function(delta, y.hat, stratum, total = TRUE){
   y.hat <- as.matrix(y.hat)
   revCumsum.strat <- function(strat){
-    temp.y.hat <- y.hat[which(stratum == strat), , drop=FALSE] 
+    temp.y.hat <- y.hat[which(stratum == strat), , drop=FALSE]
     temp.rsk <- apply(temp.y.hat, 2, function(x) rev(cumsum(rev(exp(x)))))
     return(temp.rsk)
   }
   rsk <- do.call(rbind, lapply(unique(stratum), function(i) revCumsum.strat(i)))
-  
+
   if (total == TRUE) { #when delta = 0, loss contribution is 0
     return(-2 * (crossprod(delta, y.hat) - crossprod(delta, log(rsk)))) #return a vector (1 * nlambda)
   } else { #when delta = 0, loss contribution is 0
@@ -605,28 +612,28 @@ loss.coxkl_highdim <- function(delta, y.hat, stratum, total = TRUE){
 #' Setup Lambda Sequence for Cox–MDTL Model
 #' @keywords internal
 #' @noRd
-setupLambda_MDTL <- function(Z, time, delta, beta.init, stratum, beta_ext, vcov, Qbeta_ext, 
-                             group, group.multiplier, n.each_stratum, alpha, 
+setupLambda_MDTL <- function(Z, time, delta, beta.init, stratum, beta_ext, vcov, Qbeta_ext,
+                             group, group.multiplier, n.each_stratum, alpha,
                              eta, nlambda, lambda.min.ratio) {
   n <- nrow(Z)
   K <- table(group)
   K1 <- as.integer(if (min(group)==0) cumsum(K) else c(0, cumsum(K)))
   storage.mode(K1) <- "integer"
 
-  
+
   if (K1[1]!=0) {
     nullFit <- cox_MDTL(Z[, group == 0, drop = FALSE], delta, time, stratum,
                         beta = beta_ext, vcov = vcov, etas = eta)
     beta_U_star <- as.numeric(nullFit$beta)  #low-dim unpenalized beta estimate
     Qbeta_Ustar <- as.vector(vcov[, group == 0, drop = FALSE] %*% beta_U_star) #for calculate lambda_max
-    
+
     LinPred <- as.numeric(nullFit$linear.predictors)
     beta.init <- c(beta_U_star, rep(0, length(beta.init) - length(beta_U_star)))
-    rsk <- c()  
+    rsk <- c()
     for (i in seq_along(unique(stratum))){
       rsk <- c(rsk, rev(cumsum(rev(exp(LinPred[stratum == i])))))
     }
-    
+
     r <- numeric(length(delta))
     for (i in seq_along(unique(stratum))) {
       idx <- which(stratum == i)
@@ -642,15 +649,15 @@ setupLambda_MDTL <- function(Z, time, delta, beta.init, stratum, beta_ext, vcov,
     }
     r <- delta - h
     beta.init <- beta.init
-    
+
     Qbeta_Ustar <- rep(0, ncol(Z))
   }
-  
-  zmax <- maxgrad_MDTL(Z, r / n, Qbeta_ext, Qbeta_Ustar, 
+
+  zmax <- maxgrad_MDTL(Z, r / n, Qbeta_ext, Qbeta_Ustar,
                        K1, as.double(group.multiplier), eta)
 
   lambda.max <- zmax / alpha
-  
+
   if (lambda.min.ratio == 0){
     lambda <- c(exp(seq(log(lambda.max), log(1e-7 * lambda.max), len = nlambda-1)), 0)
   } else {

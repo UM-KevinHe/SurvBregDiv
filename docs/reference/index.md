@@ -15,6 +15,8 @@
   Integration
 - [`cv.coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl.md)
   : Cross-Validated Cox–KL to Tune the Integration Parameter (eta)
+- [`bopt.coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/bopt.coxkl.md)
+  : Bayesian Optimization for the Cox–KL Integration Parameter (eta)
 - [`coxkl_ties()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ties.md)
   : Cox Proportional Hazards Model with KL Divergence for Data
   Integration (Ties Handling)
@@ -105,6 +107,8 @@
   : Plot Stability Selection Path
 - [`plot(`*`<variable_importance>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.variable_importance.md)
   : Plot Variable Importance (Selection Frequency)
+- [`plot(`*`<coxkl_enet.multi>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.coxkl_enet.multi.md)
+  : Plot Method for Multi-Source KL-Integrated Cox Elastic-Net Models
 
 ## Utilities
 

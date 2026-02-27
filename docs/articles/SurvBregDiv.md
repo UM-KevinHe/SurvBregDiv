@@ -2,154 +2,109 @@
 
 ## 1. Introduction
 
-Accurate prognostic modeling is a central goal in survival analysis. The
-rapid expansion of large-scale biobank initiatives—with rich genetic,
-molecular, imaging, and electronic health record data—has created new
-opportunities to improve predictive performance in clinical and
-epidemiologic research. However, these datasets often exhibit limited
-effective sample sizes, high dimensionality, low signal-to-noise ratios,
-and additional practical constraints including privacy considerations
-and restricted data access.
+The `SurvBregDiv` package implements a Bregman-divergence-based transfer
+learning framework for survival analysis, enabling principled borrowing
+of external information while explicitly accommodating population
+heterogeneity between the internal study and external sources.
 
-Integrating external information offers a principled strategy for
-improving model efficiency. Yet, classical data-integration methods
-typically rely on the assumption that multiple datasets arise from a
-common data-generating mechanism. In modern biomedical applications,
-this assumption is rarely satisfied. Misspecification due to population
-heterogeneity can induce substantial bias, motivating the development of
-transfer-learning approaches that explicitly accommodate between-source
-discrepancies.
-
-While Bregman divergence has been successfully applied to borrowing
-information in binary-outcome settings, extending such ideas to censored
-time-to-event outcomes is nontrivial due to right censoring and the
-limited nature of available external survival information (e.g.,
-predicted risk scores, fitted regression coefficients, or hazard ratios
-without access to a baseline hazard).
-
-Beyond full-cohort survival studies, many biomedical investigations rely
-on the nested case–control (NCC) design to alleviate the burden of
-labor-intensive measurements, high-cost data acquisition, and
-destructive or finite biospecimen assays. Under an NCC design, only a
-small number of matched controls are sampled at each failure time,
-producing survival data that are analyzed through conditional logistic
-regression applied to matched risk sets. Despite its practical
-relevance, no existing methodology or software supports transfer
-learning or external information borrowing under NCC designs.
-
-The `SurvBregDiv` package addresses these challenges by providing a
-unified Bregman Divergence transfer-learning framework for both
-full-cohort Cox data and nested case–control designs. The methods
-integrate external information in a privacy-preserving manner and are
-applicable to both low-dimensional settings and high-dimensional
-variable selection with ridge, lasso, and elastic net penalties.
+The package supports two primary study designs: **full-cohort Cox
+proportional hazards models** and **nested case–control (NCC) designs**
+based on conditional logistic regression on sampled risk sets.
 
 ### Key Features
 
-- **Transfer learning via Bregman Divergence**  
-  Integrates external information through Bregman divergence–based
-  penalization, enabling adaptive borrowing from heterogeneous data
-  sources.
+**Three external data integration modes**  
+Depending on the type of external data available, the package supports:
 
-- **Flexible external information formats**  
-  Supports incorporation of external information provided either as
-  individual-level data or as summary-level inputs, such as regression
-  coefficients, risk scores, or information defined on partially
-  overlapping covariate sets.
+- *Individual-level data*: when full covariate and outcome data from an
+  external cohort are accessible, integration is performed via a
+  weighted pseudo-likelihood framework.
+- *Coefficient-level summaries*: when only external regression
+  coefficients $`\widetilde{\boldsymbol{\beta}}`$ are available,
+  integration proceeds via Kullback–Leibler divergence penalization.
+- *Coefficient + curvature summaries*: when an additional positive
+  semidefinite matrix $`\mathbf{A}`$ (e.g., information matrix or
+  variance–covariance matrix) is provided, integration proceeds via
+  Mahalanobis distance penalization.
 
-- **Privacy-preserving external information use**  
-  Allow summary-level external inputs—such as fitted coefficients or
-  risk scores—without requiring individual-level external data access.
+**High-dimensional variable selection**  
+Supports penalized estimation with ridge, lasso, and elastic net
+penalties for variable selection and shrinkage. For robust predictor
+identification, stability selection is also available, which aggregates
+results across subsamples to control the expected number of false
+discoveries in high-dimensional settings.
 
-- **Heterogeneity-aware borrowing**  
-  Accommodates population differences through
-  tuning-parameter–controlled shrinkage, selectively borrowing strength
-  only when sources are compatible.
+**High-dimensional variable selection**  
+Supports penalized estimation with ridge, lasso, and elastic net
+penalties, as well as stability selection for robust identification of
+relevant predictors in high-dimensional settings.
 
-- **High-dimensional modeling with regularization**  
-  Supports penalized KL-integrated models, including ridge, lasso, and
-  elastic net penalties for variable selection and shrinkage.
+**Privacy-preserving by design**  
+Summary-level integration modes require only aggregate statistics from
+the external source—no individual-level data access is needed.
 
-This vignette introduces the core functionalities of `SurvBregDiv` and
-illustrates workflows for both low- and high-dimensional applications.
+------------------------------------------------------------------------
 
-## 2. Usage Tutorial
+This vignette walks through the main functions with worked examples for
+each setting. The package supports coefficient estimation for
+low-dimensional settings and variable selection for high-dimensional
+settings, illustrated using the example datasets included in the
+package.
 
-In this tutorial, we provide a practical guide to using our integration
-software, including model fitting, hyperparameter tuning, visualization,
-and etc.
+- For Cox proportional hazards model data integration, see Section [Cox
+  Proportional Hazards Model Data Integration](#sec_cox).
+- For nested case–control designs, see Section [(Nested) Case-Control
+  Data Integration](#sec_cc).
 
-The software supports coefficient estimation for low-dimensional
-settings and variable selection for high-dimensional settings. We use
-the example datasets included in the software to illustrate how each
-approach can be applied.
+### Installation
 
-- For Cox proportional hazards model data integration, please refer to
-  Section [Cox Proportional Hazards Model Data Integration](#sec_cox)
-  for details;
-
-- For (nested) case-control designs, see Section [(Nested) Case-Control
-  Data Integration](#sec_cc) for details.
-
-### 2.1 Installation
-
-You can install the software from CRAN:
+You can install the package from CRAN:
 
 ``` r
 install.packages("SurvBregDiv")
 ```
 
-Or install the development version of `SurvBregDiv` from GitHub:
+Or install the development version from GitHub:
 
 ``` r
-require(devtools)
-require(remotes)
 remotes::install_github("UM-KevinHe/SurvBregDiv", ref = "main")
 ```
-
-Additional options refer to
-[`help(install.packages)`](https://rdrr.io/r/utils/install.packages.html).
-
-We load the package by:
 
 ``` r
 library(SurvBregDiv)
 ```
 
-### 2.2 Cox Proportional hazards model
+## 2. Cox Proportional Hazards Model
 
 Depending on the type of external data available, the framework supports
 three broad methodological settings, each implemented through a
 corresponding set of functions:
 
-1.  **Individual-level external data available.** When individual-level
-    external data are accessible (e.g., for time-to-event outcomes, the
-    user has covariates, survival outcomes, and follow-up times from an
-    external cohort), the software provides the function such as
+1.  [Individual-Level External Data Integration](#sec_indi) When
+    individual-level external data are accessible (e.g., for
+    time-to-event outcomes, the user has covariates, survival outcomes,
+    and follow-up times from an external cohort), the software provides
+    the function such as
     [`cox_indi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_indi.md)
     and related downstream utilities. These functions implement data
     integration through a weighted pseudo-likelihood framework (Wang and
-    Zidek 2005; Gao and Carroll 2017). Details can be found in
-    [Individual-Level External Data Integration](#sec_indi).
+    Zidek 2005; Gao and Carroll 2017).
 
-2.  **Only summary-level regression estimates available.** If, due to
-    practical or regulatory constraints, the external source can provide
-    only summary-level estimated regression coefficients
+2.  [Kullback–Leibler Divergence Data Integration](#sec_coxkl) If, due
+    to practical or regulatory constraints, the external source can
+    provide only summary-level estimated regression coefficients
     $`\widetilde{\boldsymbol{\beta}}`$, the user can perform data
-    integration via the Kullback–Leibler divergence. Details can be
-    found in Section [Kullback–Leibler Divergence Data
-    Integration](#sec_coxkl).
+    integration via the Kullback–Leibler divergence.
 
-3.  **Regression estimates plus curvature information available.** If,
-    in addition to estimated external regression coefficients, the user
-    can also provide a positive semidefinite matrix $`\mathbf{A}`$
+3.  [Mahalanobis Distance Data Integration](#sec_coxmaha) If, in
+    addition to estimated external regression coefficients, the user can
+    also provide a positive semidefinite matrix $`\mathbf{A}`$
     summarizing the curvature of the external objective function (e.g.,
     an information matrix, a variance–covariance matrix, or variance
     information only), the user can perform data integration via the
-    quadratic Mahalanobis distance. Details can be found in Section
-    [Mahalanobis Distance Data Integration](#sec_coxmaha).
+    quadratic Mahalanobis distance.
 
-#### 2.2.1 Individual-Level External Data Integration
+### 2.1 Individual-Level External Data Integration
 
 When individual-level data are available for both the internal and
 external cohorts, the function
@@ -239,7 +194,7 @@ cvfit.cox_indi <- cv.cox_indi(
 )
 ```
 
-#### 2.2.2 Kullback–Leibler Divergence Data Integration
+### 2.2 Kullback–Leibler Divergence Data Integration
 
 Due to practical or regulatory constraints, only summary-level
 information may be available from the external source, typically in the
@@ -250,6 +205,7 @@ integration can be carried out through a Kullback–Leibler divergence
 formulation. The minimal input required for this approach is
 $`\widetilde{\boldsymbol{\beta}}`$, corresponding to the coefficient
 estimates obtained from the external model, or the external risk score.
+For methodology details, please refer to Page: *Appendix: coxkl*.
 
 We present the usage of the functions for
 [low-dimensional](#sec_coxkl_low) and
@@ -384,7 +340,8 @@ approximation and is generally suitable when the number of tied events
 is moderate, whereas the exact method yields more accurate inference in
 the presence of extensive ties at the cost of increased computational
 burden. The following example demonstrates the use of the Breslow
-method.
+method. For methodology details, please refer to Page: *Appendix:
+coxkl_ties*.
 
 ``` r
 time_ties <- round(time, 2)   # Rounding time introduces ties for demonstration
@@ -400,7 +357,7 @@ fit.coxkl.ties <- coxkl_ties(
 )
 ```
 
-##### High-Dimensional Integration
+#### High-Dimensional Integration
 
 In high-dimensional regimes—such as when the number of predictors is
 comparable to or exceeds the sample size—the `SurvBregDiv` package
@@ -568,7 +525,7 @@ considerations to determine an appropriate range. (For ridge, use
 analogously.)
 
 ``` r
-eta_grid_hd <- generate_eta(method = "exponential", n = 50, max_eta = 100)
+eta_grid_hd <- generate_eta(method = "exponential", n = 50, max_eta = 50)
 
 cvfit.coxkl_LASSO <- cv.coxkl_enet(
   z = z_hd,
@@ -593,11 +550,11 @@ head(cvfit.coxkl_LASSO$integrated_stat.best_per_eta)
 
     ##          eta     lambda     Loss
     ## 1 0.00000000 0.10193604 2.842157
-    ## 2 0.09953651 0.09773006 2.840152
-    ## 3 0.20888146 0.09390799 2.838419
-    ## 4 0.32900138 0.02575599 2.829181
-    ## 5 0.46095806 0.02161908 2.817568
-    ## 6 0.60591790 0.01818471 2.806310
+    ## 2 0.04976825 0.09973335 2.841094
+    ## 3 0.10444073 0.09754243 2.840066
+    ## 4 0.16450069 0.09537274 2.839077
+    ## 5 0.23047903 0.03052973 2.837524
+    ## 6 0.30295895 0.02783069 2.831473
 
 The helper function
 [`cv.plot()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.plot.md)
@@ -620,7 +577,7 @@ The resulting plot displays:
 - and a vertical dashed orange line denoting the optimal $`\eta`$, where
   the cross-validated loss attains its minimum.
 
-##### Variable Importance and Stability Selection
+#### Variable Importance and Stability Selection
 
 For high-dimensional integrated models, users are often interested in
 identifying predictors that are selected in a stable and reproducible
@@ -641,7 +598,7 @@ imp.coxkl <- variable_importance(
   time = time_hd,
   stratum = strat_hd,
   beta = beta_external_hd,
-  etas = eta_grid_hd,  
+  etas = eta_grid_hd,
   B = 50
 )
 ```
@@ -707,13 +664,13 @@ corresponds to the penalty parameter $`\lambda`$ on a reversed log10
 scale, and the y-axis shows the selection frequency.
 
 ``` r
-plot(coxkl.StabSelect, threshold = 0.7) 
+plot(coxkl.StabSelect, threshold = 0.7)
 ```
 
 ![Plot generated in survkl
 vignette](SurvBregDiv_files/figure-html/unnamed-chunk-25-1.png)
 
-##### Bagging for High-Dimensional Models
+#### Bagging for High-Dimensional Models
 
 Besides cross-validated LASSO and stability selection, we additionally
 support an ensemble strategy that combines bootstrapping, external-data
@@ -765,7 +722,7 @@ linear predictor `z_new %*% bagging.coxkl$best_beta`, while
 `bagging.coxkl$all_betas` can be inspected to assess the variability of
 the bootstrap ensemble.
 
-##### Multi-Source Integration
+#### Multi-Source Integration
 
 In many applications, multiple sources of external information may be
 available, each providing a distinct set of external coefficient
@@ -785,9 +742,6 @@ integrated estimate.
 ``` r
 beta_list <- list(
   ExampleData_highdim$beta_external,
-  ExampleData_highdim$beta_external.multi1,
-  ExampleData_highdim$beta_external.multi2,
-  ExampleData_highdim$beta_external.multi3,
   ExampleData_highdim$beta_external.multi4,
   ExampleData_highdim$beta_external.multi5
 )
@@ -798,18 +752,54 @@ multi.out <- coxkl_enet.multi(
   time = time_hd,
   stratum = strat_hd,
   beta_list = beta_list,
-  etas = eta_list,
+  etas = eta_grid_hd,
   combine = "mean"
 )
 ```
 
-The output is an object contains the combined coefficient estimate as
-well as the individual coefficient vectors obtained from each external
-source. In particular, `best_beta` stores the aggregated coefficient
-vector, while `all_betas` contains the coefficient estimates from each
-fitted model.
+The returned object is of class `"coxkl_enet.multi"` and contains the
+following key components:
 
-#### 2.2.3 Mahalanobis Distance Data Integration
+- `best_beta`: the aggregated coefficient vector, obtained by combining
+  the per-source estimates according to the `combine` rule (here,
+  `"mean"`).
+- `all_betas`: a matrix of dimension $`p \times K_{\text{valid}}`$ whose
+  columns are the coefficient vectors from each successfully fitted
+  source model.
+- `valid_sources`: the number of sources that produced a successful fit
+  and were included in the aggregation.
+
+#### Visualising Multi-Source Performance
+
+The [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method for
+`"coxkl_enet.multi"` objects displays how model performance varies as a
+function of the integration parameter $`\eta`$ for each external source,
+overlaid on a single figure.
+
+``` r
+plot(multi.out,
+     test_z       = test_hd$z,
+     test_time    = test_hd$time,
+     test_delta   = test_hd$status,
+     test_stratum = test_hd$stratum,
+     criteria     = "CIndex")
+```
+
+![Plot generated in survkl
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-28-1.png)
+
+Each curve traces the performance of one external source across the
+$`\eta`$ grid, from $`\eta = 0`$ to $`\eta = \eta_{\max}`$. The shape of
+each curve provides a natural diagnostic for the quality of the
+corresponding external model: a source whose curve peaks at a relatively
+small $`\eta`$ and subsequently plateaus or declines indicates that only
+limited information should be borrowed from that source, suggesting
+poorer compatibility with the internal data. Conversely, a source whose
+performance continues to improve or remains stable at larger values of
+$`\eta`$ signals that the external model is well-aligned with the
+internal population, and a higher degree of transfer is warranted.
+
+### 2.3 Mahalanobis Distance Data Integration
 
 Due to practical or regulatory constraints, only summary-level
 information may be available from the external source. Compared with
@@ -828,7 +818,7 @@ We present the usage of the functions for
 [low-dimensional](#sec_coxMD_low) and
 [high-dimensional](#sec_coxMD_high) settings separately.
 
-##### Low-Dimensional Integration
+#### Low-Dimensional Integration
 
 We begin with **low-dimensional** settings, where the number of
 predictors is modest. The description of the built-in low-dimensional
@@ -882,7 +872,7 @@ plot(
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-29-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-30-1.png)
 
 The function
 [`cv.cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL.md)
@@ -919,9 +909,9 @@ cv.plot(cvfit.cox_MDTL)
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-31-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-32-1.png)
 
-##### High-Dimensional Integration
+#### High-Dimensional Integration
 
 In high-dimensional regimes—such as when the number of predictors is
 comparable to or exceeds the sample size—the `SurvBregDiv` package
@@ -1025,7 +1015,7 @@ plot(
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-34-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-35-1.png)
 
 For penalized KL-integrated models, the functions
 [`cv.cox_MDTL_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_ridge.md)
@@ -1089,7 +1079,7 @@ using the same interface and workflow as described in the sections on
 [variable importance and stability selection](#sec_var_importance) and
 [Bagging](#sec_bagging) in the KL divergence section.
 
-### 2.3 (Nested) Case-Control Design
+## 3. (Nested) Case-Control Design
 
 In the NCC setting, event times are represented through matched
 case–control sets, and estimation proceeds via conditional logistic
@@ -1104,7 +1094,7 @@ We adopt the KL-divergence approach for data integration and present the
 usage of the functions for [low-dimensional](#sec_low_cc) and
 [high-dimensional](#sec_high_cc) settings separately.
 
-#### 2.3.1 Low-Dimensional Integration
+### 3.1 Low-Dimensional Integration
 
 The built-in simulated dataset for NCC designs, `ExampleData_cc`,
 contains a training set (1000 samples) and a test set (2500 samples).
@@ -1169,7 +1159,7 @@ plot(
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-38-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-39-1.png)
 
 Cross-validation for tuning $`\eta`$ can be performed via
 [`cv.clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl.md),
@@ -1211,7 +1201,7 @@ cv.plot(cv.clogitkl.fit_breslow)
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-40-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-41-1.png)
 
 The plot displays a purple curve tracing the cross-validated performance
 across the $`\eta`$ grid, a green dotted horizontal line representing
@@ -1219,7 +1209,7 @@ the internal baseline at $`eta`$ = 0 (with a green point marking its
 value), and a vertical dashed orange line indicating the optimal
 $`\eta`$ at which the cross-validated loss is minimized.
 
-#### 2.3.2 High-Dimensional Integration
+### 3.2 High-Dimensional Integration
 
 The built-in simulated dataset for NCC designs,
 `ExampleData_cc_highdim`, contains a training set with 50 matched sets
@@ -1269,7 +1259,7 @@ plot(
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-43-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-44-1.png)
 
 Cross-validation for tuning $`\eta`$ can be performed via
 [`cv.clogitkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl_enet.md):
@@ -1296,7 +1286,7 @@ cv.plot(cv.clogitkl_enet_fit)
 ```
 
 ![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-45-1.png)
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-46-1.png)
 
 The plot displays a purple curve tracing the cross-validated performance
 across the $`\eta`$ grid, a green dotted horizontal line representing

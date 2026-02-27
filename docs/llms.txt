@@ -79,6 +79,8 @@ If you encounter problems or bugs, please contact us:
   Integration
 - [`cv.coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl.md)
   : Cross-Validated Cox–KL to Tune the Integration Parameter (eta)
+- [`bopt.coxkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/bopt.coxkl.md)
+  : Bayesian Optimization for the Cox–KL Integration Parameter (eta)
 - [`coxkl_ties()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_ties.md)
   : Cox Proportional Hazards Model with KL Divergence for Data
   Integration (Ties Handling)
@@ -169,6 +171,8 @@ If you encounter problems or bugs, please contact us:
   : Plot Stability Selection Path
 - [`plot(`*`<variable_importance>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.variable_importance.md)
   : Plot Variable Importance (Selection Frequency)
+- [`plot(`*`<coxkl_enet.multi>`*`)`](https://um-kevinhe.github.io/SurvBregDiv/reference/plot.coxkl_enet.multi.md)
+  : Plot Method for Multi-Source KL-Integrated Cox Elastic-Net Models
 
 ## Utilities
 
@@ -199,3 +203,7 @@ If you encounter problems or bugs, please contact us:
 
 - [Cross-validation
   Criteria](https://um-kevinhe.github.io/SurvBregDiv/articles/CV_Criteria.md):
+- [KL Divergence-Based Transfer Learning for Cox
+  Model](https://um-kevinhe.github.io/SurvBregDiv/articles/coxkl.md):
+- [Cox KL Divergence: Handling Tied Event
+  Times](https://um-kevinhe.github.io/SurvBregDiv/articles/coxkl_ties.md):

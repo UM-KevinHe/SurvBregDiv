@@ -29,7 +29,8 @@ Imports:
     reshape2,
     survival,
     MASS,
-    mvtnorm
+    mvtnorm,
+    rBayesianOptimization
 Depends:
     R (>= 4.0)
 Suggests:

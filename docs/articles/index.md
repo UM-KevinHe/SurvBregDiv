@@ -9,3 +9,7 @@
 
 - [Cross-validation
   Criteria](https://um-kevinhe.github.io/SurvBregDiv/articles/CV_Criteria.md):
+- [KL Divergence-Based Transfer Learning for Cox
+  Model](https://um-kevinhe.github.io/SurvBregDiv/articles/coxkl.md):
+- [Cox KL Divergence: Handling Tied Event
+  Times](https://um-kevinhe.github.io/SurvBregDiv/articles/coxkl_ties.md):

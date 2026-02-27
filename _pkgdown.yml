@@ -1,5 +1,4 @@
 url: https://um-kevinhe.github.io/SurvBregDiv/
-
 template:
   bootstrap: 5
   bslib:
@@ -12,41 +11,38 @@ template:
     mathjax: true
   in_header:
     - pkgdown/extra.css
-
 toc:
   depth: 6
-
 navbar:
   type: inverse
-
   left:
     - text: "Home"
       href: index.html
-
     - text: "Get started"
       href: articles/SurvBregDiv.html
-
     - text: "Appendix"
       menu:
         - text: "CV Criteria"
           href: articles/CV_Criteria.html
-
+        - text: "Cox KL Divergence"
+          href: articles/coxkl.html
+        - text: "Cox KL: Tied Event Times"
+          href: articles/coxkl_ties.html
     - text: "Reference"
       href: reference/index.html
-
   right:
     - icon: fa-github fa-lg
       href: https://github.com/UM-KevinHe/SurvBregDiv
       aria-label: "GitHub repository"
-
 articles:
   - title: "Get started"
     contents:
       - SurvBregDiv
-
   - title: "Appendix"
     contents:
       - CV_Criteria
+      - coxkl
+      - coxkl_ties
 
 reference:
   - title: "Individual-level Internal–External Integration"
@@ -58,6 +54,7 @@ reference:
     contents:
       - coxkl
       - cv.coxkl
+      - bopt.coxkl
       - coxkl_ties
       - cv.coxkl_ties
       - cox_MDTL
@@ -110,6 +107,7 @@ reference:
       - plot.cox_MDTL_ridge
       - plot.StabSelect
       - plot.variable_importance
+      - plot.coxkl_enet.multi
 
   - title: "Utilities"
     contents:

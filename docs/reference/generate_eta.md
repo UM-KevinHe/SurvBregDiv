@@ -56,6 +56,6 @@ generate_eta(method = "exponential", n = 10, max_eta = 5)
 #>  [7] 1.03759328 1.76455236 2.97719318 5.00000000
 
 # Generate 5 linearly spaced eta values up to 3
-generate_eta(method = "linear", n = 5, max_eta = 3)
+generate_eta(method = "linear", n = 5, min_eta= 0, max_eta = 3)
 #> [1] 0.00 0.75 1.50 2.25 3.00
 ```

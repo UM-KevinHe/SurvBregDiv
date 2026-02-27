@@ -799,3 +799,9 @@ theme_biometrics_legend <- function() {
       legend.key.height = unit(1, "lines")
     )
 }
+
+
+
+
+
+
