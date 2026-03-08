@@ -375,7 +375,24 @@ double maxgrad_MDTL(arma::mat &x,
   return z_max;
 }
 
+// [[Rcpp::export]]
+double maxgrad_indi(arma::mat &x, arma::vec &r, arma::vec &K, arma::vec &m, const double n_eff){
+  int J = K.n_elem - 1;
+  double z_max = 0.0;
 
+  for (int g = 0; g < J; g++){
+    int Kg = K(g + 1) - K(g);
+    arma::vec Zg(Kg);
+
+    for (int j = K(g); j < K(g + 1); j++){
+      Zg(j - K(g)) = dot(x.col(j), r) / n_eff;
+    }
+
+    double z = arma::norm(Zg, 2) / m(g);
+    if (z > z_max) z_max = z;
+  }
+  return z_max;
+}
 
 
 double mean_crossprod(const arma::mat &Z, const arma::vec &r, const int j, const int n_obs) {

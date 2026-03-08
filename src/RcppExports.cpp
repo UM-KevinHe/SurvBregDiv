@@ -310,6 +310,52 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// mean_crossprod_weight
+double mean_crossprod_weight(const arma::mat& Z, const arma::vec& r, const int j, const double n_eff);
+RcppExport SEXP _SurvBregDiv_mean_crossprod_weight(SEXP ZSEXP, SEXP rSEXP, SEXP jSEXP, SEXP n_effSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type r(rSEXP);
+    Rcpp::traits::input_parameter< const int >::type j(jSEXP);
+    Rcpp::traits::input_parameter< const double >::type n_eff(n_effSEXP);
+    rcpp_result_gen = Rcpp::wrap(mean_crossprod_weight(Z, r, j, n_eff));
+    return rcpp_result_gen;
+END_RCPP
+}
+// StratCox_lasso
+List StratCox_lasso(arma::vec& delta_obs, arma::mat& Z, arma::vec& weight, arma::vec& n_each_prov, arma::vec& beta, int K0, arma::vec& K1, arma::vec& lambda_seq, bool lambda_early_stop, double stop_loss_ratio, arma::vec& group_multiplier, int max_total_iter, int max_each_iter, double tol, int initial_active_group, double nvar_max, double group_max, bool trace_lambda, bool actSet, int actIter, int activeGroupNum, bool actSetRemove);
+RcppExport SEXP _SurvBregDiv_StratCox_lasso(SEXP delta_obsSEXP, SEXP ZSEXP, SEXP weightSEXP, SEXP n_each_provSEXP, SEXP betaSEXP, SEXP K0SEXP, SEXP K1SEXP, SEXP lambda_seqSEXP, SEXP lambda_early_stopSEXP, SEXP stop_loss_ratioSEXP, SEXP group_multiplierSEXP, SEXP max_total_iterSEXP, SEXP max_each_iterSEXP, SEXP tolSEXP, SEXP initial_active_groupSEXP, SEXP nvar_maxSEXP, SEXP group_maxSEXP, SEXP trace_lambdaSEXP, SEXP actSetSEXP, SEXP actIterSEXP, SEXP activeGroupNumSEXP, SEXP actSetRemoveSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec& >::type delta_obs(delta_obsSEXP);
+    Rcpp::traits::input_parameter< arma::mat& >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type weight(weightSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type n_each_prov(n_each_provSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type beta(betaSEXP);
+    Rcpp::traits::input_parameter< int >::type K0(K0SEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type K1(K1SEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type lambda_seq(lambda_seqSEXP);
+    Rcpp::traits::input_parameter< bool >::type lambda_early_stop(lambda_early_stopSEXP);
+    Rcpp::traits::input_parameter< double >::type stop_loss_ratio(stop_loss_ratioSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type group_multiplier(group_multiplierSEXP);
+    Rcpp::traits::input_parameter< int >::type max_total_iter(max_total_iterSEXP);
+    Rcpp::traits::input_parameter< int >::type max_each_iter(max_each_iterSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< int >::type initial_active_group(initial_active_groupSEXP);
+    Rcpp::traits::input_parameter< double >::type nvar_max(nvar_maxSEXP);
+    Rcpp::traits::input_parameter< double >::type group_max(group_maxSEXP);
+    Rcpp::traits::input_parameter< bool >::type trace_lambda(trace_lambdaSEXP);
+    Rcpp::traits::input_parameter< bool >::type actSet(actSetSEXP);
+    Rcpp::traits::input_parameter< int >::type actIter(actIterSEXP);
+    Rcpp::traits::input_parameter< int >::type activeGroupNum(activeGroupNumSEXP);
+    Rcpp::traits::input_parameter< bool >::type actSetRemove(actSetRemoveSEXP);
+    rcpp_result_gen = Rcpp::wrap(StratCox_lasso(delta_obs, Z, weight, n_each_prov, beta, K0, K1, lambda_seq, lambda_early_stop, stop_loss_ratio, group_multiplier, max_total_iter, max_each_iter, tol, initial_active_group, nvar_max, group_max, trace_lambda, actSet, actIter, activeGroupNum, actSetRemove));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rev_cumsum
 arma::vec rev_cumsum(const arma::vec& X);
 RcppExport SEXP _SurvBregDiv_rev_cumsum(SEXP XSEXP) {
@@ -432,6 +478,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// maxgrad_indi
+double maxgrad_indi(arma::mat& x, arma::vec& r, arma::vec& K, arma::vec& m, const double n_eff);
+RcppExport SEXP _SurvBregDiv_maxgrad_indi(SEXP xSEXP, SEXP rSEXP, SEXP KSEXP, SEXP mSEXP, SEXP n_effSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::mat& >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type r(rSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type K(KSEXP);
+    Rcpp::traits::input_parameter< arma::vec& >::type m(mSEXP);
+    Rcpp::traits::input_parameter< const double >::type n_eff(n_effSEXP);
+    rcpp_result_gen = Rcpp::wrap(maxgrad_indi(x, r, K, m, n_eff));
+    return rcpp_result_gen;
+END_RCPP
+}
 // Cox_Vcov
 arma::mat Cox_Vcov(const arma::mat& Z, const arma::vec& delta, const arma::vec& beta, const arma::vec& n_each_stratum, const double lambda);
 RcppExport SEXP _SurvBregDiv_Cox_Vcov(SEXP ZSEXP, SEXP deltaSEXP, SEXP betaSEXP, SEXP n_each_stratumSEXP, SEXP lambdaSEXP) {
@@ -464,6 +525,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_SurvBregDiv_cox_MDTL_enet_cpp", (DL_FUNC) &_SurvBregDiv_cox_MDTL_enet_cpp, 25},
     {"_SurvBregDiv_ddloglik_indi", (DL_FUNC) &_SurvBregDiv_ddloglik_indi, 5},
     {"_SurvBregDiv_Cox_indi", (DL_FUNC) &_SurvBregDiv_Cox_indi, 7},
+    {"_SurvBregDiv_mean_crossprod_weight", (DL_FUNC) &_SurvBregDiv_mean_crossprod_weight, 4},
+    {"_SurvBregDiv_StratCox_lasso", (DL_FUNC) &_SurvBregDiv_StratCox_lasso, 22},
     {"_SurvBregDiv_rev_cumsum", (DL_FUNC) &_SurvBregDiv_rev_cumsum, 1},
     {"_SurvBregDiv_combn_index", (DL_FUNC) &_SurvBregDiv_combn_index, 2},
     {"_SurvBregDiv_pl_cal_theta", (DL_FUNC) &_SurvBregDiv_pl_cal_theta, 3},
@@ -473,6 +536,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_SurvBregDiv_cox_c_index", (DL_FUNC) &_SurvBregDiv_cox_c_index, 3},
     {"_SurvBregDiv_maxgrad", (DL_FUNC) &_SurvBregDiv_maxgrad, 4},
     {"_SurvBregDiv_maxgrad_MDTL", (DL_FUNC) &_SurvBregDiv_maxgrad_MDTL, 7},
+    {"_SurvBregDiv_maxgrad_indi", (DL_FUNC) &_SurvBregDiv_maxgrad_indi, 5},
     {"_SurvBregDiv_Cox_Vcov", (DL_FUNC) &_SurvBregDiv_Cox_Vcov, 5},
     {NULL, NULL, 0}
 };

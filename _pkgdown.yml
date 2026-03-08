@@ -28,6 +28,8 @@ navbar:
           href: articles/coxkl.html
         - text: "Cox KL: Tied Event Times"
           href: articles/coxkl_ties.html
+        - text: "NCC KL Divergence"
+          href: articles/ncc.html
     - text: "Reference"
       href: reference/index.html
   right:
@@ -43,13 +45,14 @@ articles:
       - CV_Criteria
       - coxkl
       - coxkl_ties
-
+      - ncc
 reference:
   - title: "Individual-level Internal–External Integration"
     contents:
       - cox_indi
       - cv.cox_indi
-
+      - cox_indi_enet
+      - cv.cox_indi_enet
   - title: "Low-Dimensional Bregman Divergence based Integrated Cox Model"
     contents:
       - coxkl
@@ -59,7 +62,6 @@ reference:
       - cv.coxkl_ties
       - cox_MDTL
       - cv.cox_MDTL
-
   - title: "High-Dimensional Bregman Divergence based Integrated Cox Model"
     contents:
       - coxkl_ridge
@@ -70,32 +72,26 @@ reference:
       - cox_MDTL_enet
       - cv.cox_MDTL_ridge
       - cv.cox_MDTL_enet
-
   - title: "Variable Importance/Stability Selection for High-Dimensional Models"
     contents:
       - variable_importance
       - coxkl_enet.StabSelect
       - cox_MDTL_enet.StabSelect
-
   - title: "Bagging for High-Dimensional Models"
     contents:
       - coxkl_enet_bagging
       - cox_MDTL_enet_bagging
-
   - title: "Low-Dimensional KL Divergence based Integrated Conditional Logistic Model"
     contents:
       - clogitkl
       - cv.clogitkl
-
   - title: "High-Dimensional KL Divergence based Integrated Conditional Logistic Model"
     contents:
       - clogitkl_enet
       - cv.clogitkl_enet
-
   - title: "Multi-Source Integration"
     contents:
       - coxkl_enet.multi
-
   - title: "Plotting Functions"
     contents:
       - cv.plot
@@ -108,11 +104,9 @@ reference:
       - plot.StabSelect
       - plot.variable_importance
       - plot.coxkl_enet.multi
-
   - title: "Utilities"
     contents:
       - generate_eta
-
   - title: "Datasets"
     contents:
       - ExampleData_lowdim

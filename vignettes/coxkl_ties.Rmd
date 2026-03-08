@@ -241,6 +241,190 @@ $$
 </div>
 
 
+## Breslow Approximation
+
+Although Cox's exact method provides a precise treatment of tied failure times,
+its computational cost grows combinatorially with the number of ties at each
+event time: the size of the candidate failure set $\binom{n_k^{(s)}}{d_k^{(s)}}$
+becomes prohibitively large whenever $d_k^{(s)}$ is non-negligible relative to
+$n_k^{(s)}$. The Breslow approximation [@breslow1974covariance] addresses this
+limitation by replacing the exact combinatorial denominator with a computationally
+tractable surrogate, while retaining the same support
+$\mathcal{R}_k^{(s)}(d_k^{(s)})$ of all size-$d_k^{(s)}$ subsets of the risk set.
+
+### Approximation of the Combinatorial Denominator
+
+Under Cox's exact method, the denominator of $\mathbf{q}_k^{(s)}(H)$ involves
+the elementary symmetric polynomial of degree $d_k^{(s)}$ in the individual
+exponentiated risk scores,
+
+$$
+\sum_{H' \in \mathcal{R}_k^{(s)}(d_k^{(s)})}
+\exp\!\left\{ r_k(H'; \boldsymbol{\beta}) \right\}
+=
+\sum_{H' \in \mathcal{R}_k^{(s)}(d_k^{(s)})}
+\prod_{j \in H'}
+\exp\!\left\{ r(\mathbf{Z}_j^{(s)}, \boldsymbol{\beta}) \right\},
+$$
+
+which enumerates all possible subsets of size $d_k^{(s)}$ drawn *without
+replacement* from $\mathcal{R}_k^{(s)}$. The Breslow approximation replaces this
+without-replacement enumeration by treating the $d_k^{(s)}$ failures as
+$d_k^{(s)}$ independent draws *with replacement* from $\mathcal{R}_k^{(s)}$,
+yielding the approximation
+
+$$
+\sum_{H' \in \mathcal{R}_k^{(s)}(d_k^{(s)})}
+\prod_{j \in H'}
+\exp\!\left\{ r(\mathbf{Z}_j^{(s)}, \boldsymbol{\beta}) \right\}
+\;\approx\;
+\left[
+\sum_{l \in \mathcal{R}_k^{(s)}}
+\exp\!\left\{ r(\mathbf{Z}_l^{(s)}, \boldsymbol{\beta}) \right\}
+\right]^{d_k^{(s)}},
+$$
+
+which becomes increasingly accurate as $n_k^{(s)} \gg d_k^{(s)}$, since the
+probability of selecting the same subject twice becomes negligible. Crucially, the
+support of the distribution remains unchanged: both the exact and Breslow
+formulations are defined over all $\binom{n_k^{(s)}}{d_k^{(s)}}$ candidate
+failure subsets $H \in \mathcal{R}_k^{(s)}(d_k^{(s)})$. What changes is solely
+the denominator used to normalize the probability mass.
+
+### Internal and External Probability Mass Functions
+
+Substituting this approximation, the Breslow approximation to the **internal**
+probability mass at time $t_k^{(s)}$ in stratum $s$ is
+
+$$
+\tilde{\mathbf{q}}_k^{(s)}(H)
+:=
+\frac{
+\exp\!\left\{ r_k(H; \boldsymbol{\beta}) \right\}
+}{
+\left[
+\displaystyle\sum_{l \in \mathcal{R}_k^{(s)}}
+\exp\!\left\{ r(\mathbf{Z}_l^{(s)}, \boldsymbol{\beta}) \right\}
+\right]^{d_k^{(s)}}
+},
+$$
+
+and correspondingly, the Breslow approximation to the **external** probability
+mass is
+
+$$
+\tilde{\mathbf{p}}_k^{(s)}(H)
+:=
+\frac{
+\exp\!\left\{ \tilde{r}_k(H) \right\}
+}{
+\left[
+\displaystyle\sum_{l \in \mathcal{R}_k^{(s)}}
+\exp\!\left\{ \tilde{r}(\mathbf{Z}_l^{(s)}) \right\}
+\right]^{d_k^{(s)}}
+},
+$$
+
+where $H \in \mathcal{R}_k^{(s)}(d_k^{(s)})$ and
+$\tilde{r}_k(H) = \sum_{j \in H} \tilde{r}(\mathbf{Z}_j^{(s)})$ as before. Note
+that $\tilde{\mathbf{q}}_k^{(s)}$ and $\tilde{\mathbf{p}}_k^{(s)}$ are not proper
+probability distributions over $\mathcal{R}_k^{(s)}(d_k^{(s)})$ in general,
+since the Breslow denominator does not equal the true normalizing constant and
+hence the masses do not sum to one. Nevertheless, they serve as well-defined
+surrogates within which the KL-divergence framework can be applied in an
+approximate sense.
+
+### KL Divergence and Simplified Weight
+
+The approximate KL divergence follows the same derivation as in the exact-ties
+setting. Under the Breslow approximation, the combinatorial sum over all subsets
+$H \in \mathcal{R}_k^{(s)}(d_k^{(s)})$ collapses under the with-replacement
+structure. Specifically, exchanging the order of summation and noting that the
+marginal probability of subject $j$ appearing in any selected subset equals
+$d_k^{(s)}$ times its single-draw softmax probability, one obtains
+
+$$
+\sum_{H \in \mathcal{R}_k^{(s)}(d_k^{(s)})}
+\tilde{\mathbf{p}}_k^{(s)}(H)\,r_k(H;\boldsymbol{\beta})
+=
+d_k^{(s)}
+\sum_{j \in \mathcal{R}_k^{(s)}}
+r(\mathbf{Z}_j^{(s)},\boldsymbol{\beta})\cdot
+\frac{
+\exp\!\left\{\tilde{r}(\mathbf{Z}_j^{(s)})\right\}
+}{
+\displaystyle\sum_{l \in \mathcal{R}_k^{(s)}} \exp\!\left\{\tilde{r}(\mathbf{Z}_l^{(s)})\right\}
+},
+$$
+
+with no combinatorial enumeration required.
+
+### Integrated Objective Function
+
+<div style="border-left: 4px solid #158cba; background-color: #f0f8fc;
+            padding: 1rem 1.5rem; margin: 1.5rem 0; border-radius: 0 4px 4px 0;">
+
+**Proposition (Breslow Approximation).** Under the stratified Cox model with the
+Breslow approximation for ties, the integrated objective
+$Q_{\eta}(\boldsymbol{\beta}) = -\ell(\boldsymbol{\beta}) +
+\eta\,\mathcal{D}_{\mathrm{KL}}(\mathbf{P}\parallel\mathbf{Q})$ under the linear
+specification $r(\mathbf{Z}_j^{(s)},\boldsymbol{\beta}) =
+{\mathbf{Z}_j^{(s)}}^\top\boldsymbol{\beta}$ admits the representation
+
+$$
+Q_{\eta}(\boldsymbol{\beta})
+\propto
+-\sum_{s=1}^{S}
+\sum_{k=1}^{K^{(s)}}
+\left\{
+\left(
+\frac{
+\mathbf{w}_{\mathcal{D}_k}^{(s)}
++
+\eta\,\tilde{\mathbf{w}}_k^{(s)}
+}{1+\eta}
+\right)^\top \boldsymbol{\beta}
+\;-\;
+d_k^{(s)}
+\log
+\left[
+\sum_{l \in \mathcal{R}_k^{(s)}}
+\exp\!\left\{ {\mathbf{Z}_l^{(s)}}^\top \boldsymbol{\beta} \right\}
+\right]
+\right\},
+$$
+
+where $\mathbf{w}_{\mathcal{D}_k}^{(s)} = \sum_{j \in \mathcal{D}_k^{(s)}}
+\mathbf{Z}_j^{(s)}$ and
+
+$$
+\tilde{\mathbf{w}}_k^{(s)}
+=
+d_k^{(s)}
+\sum_{j \in \mathcal{R}_k^{(s)}}
+\mathbf{Z}_j^{(s)}\cdot
+\frac{
+\exp\!\left\{\tilde{r}(\mathbf{Z}_j^{(s)})\right\}
+}{
+\displaystyle\sum_{l \in \mathcal{R}_k^{(s)}} \exp\!\left\{\tilde{r}(\mathbf{Z}_l^{(s)})\right\}
+}.
+$$
+
+</div>
+
+As in the exact-ties setting, $\tilde{\mathbf{w}}_k^{(s)}$ depends only on the
+prior risk score $\tilde{r}(\cdot)$ and can be computed once in a preprocessing
+step. In contrast to the exact method, however, $\tilde{\mathbf{w}}_k^{(s)}$
+under the Breslow approximation requires no combinatorial enumeration: it reduces
+to a softmax-weighted average of covariates over the risk set
+$\mathcal{R}_k^{(s)}$, scaled by $d_k^{(s)}$, with computational cost
+$O(n_k^{(s)})$ per event time. The resulting objective is structurally identical
+to the standard Breslow partial likelihood, with the observed covariate sum
+$\mathbf{w}_{\mathcal{D}_k}^{(s)}$ replaced by the blended term
+$(\mathbf{w}_{\mathcal{D}_k}^{(s)} + \eta\,\tilde{\mathbf{w}}_k^{(s)})/(1+\eta)$,
+with no additional computational burden introduced by the KL integration term.
+
+
 ## Comparison of the Two Methods
 
 The Breslow method provides a computationally efficient approximation and is

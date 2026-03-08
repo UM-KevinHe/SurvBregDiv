@@ -61,6 +61,14 @@ Cox_indi <- function(Z, delta, weight, n_each_stratum, beta, tol = 1e-6, max_ite
     .Call(`_SurvBregDiv_Cox_indi`, Z, delta, weight, n_each_stratum, beta, tol, max_iter)
 }
 
+mean_crossprod_weight <- function(Z, r, j, n_eff) {
+    .Call(`_SurvBregDiv_mean_crossprod_weight`, Z, r, j, n_eff)
+}
+
+StratCox_lasso <- function(delta_obs, Z, weight, n_each_prov, beta, K0, K1, lambda_seq, lambda_early_stop, stop_loss_ratio, group_multiplier, max_total_iter, max_each_iter, tol, initial_active_group, nvar_max, group_max, trace_lambda, actSet, actIter, activeGroupNum, actSetRemove) {
+    .Call(`_SurvBregDiv_StratCox_lasso`, delta_obs, Z, weight, n_each_prov, beta, K0, K1, lambda_seq, lambda_early_stop, stop_loss_ratio, group_multiplier, max_total_iter, max_each_iter, tol, initial_active_group, nvar_max, group_max, trace_lambda, actSet, actIter, activeGroupNum, actSetRemove)
+}
+
 rev_cumsum <- function(X) {
     .Call(`_SurvBregDiv_rev_cumsum`, X)
 }
@@ -95,6 +103,10 @@ maxgrad <- function(x, r, K, m) {
 
 maxgrad_MDTL <- function(x, r, Qbeta_ext, Qbeta_Ustar, K, m, eta) {
     .Call(`_SurvBregDiv_maxgrad_MDTL`, x, r, Qbeta_ext, Qbeta_Ustar, K, m, eta)
+}
+
+maxgrad_indi <- function(x, r, K, m, n_eff) {
+    .Call(`_SurvBregDiv_maxgrad_indi`, x, r, K, m, n_eff)
 }
 
 Cox_Vcov <- function(Z, delta, beta, n_each_stratum, lambda = 0.0) {

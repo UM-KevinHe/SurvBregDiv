@@ -676,3 +676,72 @@ get_T_from_stdZ <- function(std.Z) {
 }
 
 
+
+set.lambda.cox.enet <- function(delta.obs, Z, time, ID, beta, weight,
+                                group, group.multiplier, n.each_prov,
+                                alpha = 1, nlambda = 100,
+                                lambda.min.ratio = 1e-03) {
+
+  K  <- table(group)
+  K1 <- if (min(group) == 0) cumsum(K) else c(0, cumsum(K))
+  storage.mode(K1) <- "integer"
+
+  # n_eff <- sum(weight)
+  n_eff <- nrow(Z)
+
+  if (K1[1] != 0) {
+    # Unpenalized covariates exist: fit null model on those first
+    nullFit  <- survival::coxph(
+      survival::Surv(time, delta.obs) ~ Z[, group == 0, drop = FALSE] +
+        survival::strata(ID),
+      weights = weight
+    )
+    eta_lp       <- nullFit$linear.predictors
+    beta.initial <- c(nullFit$coefficients,
+                      rep(0.0, length(beta) - length(nullFit$coefficients)))
+
+    # Risk set: pure sum of exp(lp), NO weight
+    rsk <- numeric(length(delta.obs))
+    for (s in seq_along(unique(ID))) {
+      idx <- which(ID == s)
+      rsk[idx] <- rev(cumsum(rev(exp(eta_lp[idx]))))
+    }
+
+    # Residual: r_i = w_i * delta_i  -  exp(eta_i) * cumsum(w_j * delta_j / rsk_j)
+    r <- numeric(length(delta.obs))
+    for (s in seq_along(unique(ID))) {
+      idx  <- which(ID == s)
+      ex   <- exp(eta_lp[idx])
+      dLam <- (weight[idx] * delta.obs[idx]) / rsk[idx]
+      dLam[!is.finite(dLam)] <- 0
+      Lam  <- cumsum(dLam)
+      r[idx] <- weight[idx] * delta.obs[idx] - ex * Lam
+    }
+
+  } else {
+    # All covariates penalized: score at beta = 0, exp(eta) = 1
+    r <- numeric(length(delta.obs))
+    for (s in seq_along(unique(ID))) {
+      idx   <- which(ID == s)
+      n_s   <- length(idx)
+      rsk_s <- rev(cumsum(rep(1.0, n_s)))
+      dLam  <- (weight[idx] * delta.obs[idx]) / rsk_s
+      dLam[!is.finite(dLam)] <- 0
+      Lam   <- cumsum(dLam)
+      r[idx] <- weight[idx] * delta.obs[idx] - Lam
+    }
+    beta.initial <- beta
+  }
+
+  lambda.max <- maxgrad_indi(Z, r, K1, as.double(group.multiplier), n_eff) / alpha
+
+  lambda.seq <- exp(seq(log(lambda.max),
+                        log(lambda.min.ratio * lambda.max),
+                        length.out = nlambda))
+  lambda.seq[1] <- lambda.seq[1] + 1e-5
+
+  list(beta = beta.initial, lambda.seq = lambda.seq)
+}
+
+
+

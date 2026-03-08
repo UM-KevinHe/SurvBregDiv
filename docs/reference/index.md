@@ -7,6 +7,12 @@
   Individual-level Information
 - [`cv.cox_indi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_indi.md)
   : Cross-Validated cox_indi to Tune etas
+- [`cox_indi_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_indi_enet.md)
+  : Cox Proportional Hazards Model Integrated with External
+  Individual-level Data and Elastic Net Penalty
+- [`cv.cox_indi_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_indi_enet.md)
+  : Cross-Validation for Cox Model Integrated with External
+  Individual-level Data and Elastic Net Penalty
 
 ## Low-Dimensional Bregman Divergence based Integrated Cox Model
 

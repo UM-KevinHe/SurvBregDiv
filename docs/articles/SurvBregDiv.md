@@ -7,41 +7,73 @@ learning framework for survival analysis, enabling principled borrowing
 of external information while explicitly accommodating population
 heterogeneity between the internal study and external sources.
 
-The package supports two primary study designs: **full-cohort Cox
-proportional hazards models** and **nested case–control (NCC) designs**
-based on conditional logistic regression on sampled risk sets.
+The package supports two primary study designs: [full-cohort Cox
+proportional hazards models](#sec_cox) and [nested case–control (NCC)
+designs](#sec_cc) based on conditional logistic regression on sampled
+risk sets.
 
 ### Key Features
 
 **Three external data integration modes**  
 Depending on the type of external data available, the package supports:
 
-- *Individual-level data*: when full covariate and outcome data from an
-  external cohort are accessible, integration is performed via a
+- **Individual-level data**: when full covariate and outcome data from
+  an external cohort are accessible, integration is performed via a
   weighted pseudo-likelihood framework.
-- *Coefficient-level summaries*: when only external regression
+- **Coefficient-level summaries**: when only external regression
   coefficients $`\widetilde{\boldsymbol{\beta}}`$ are available,
   integration proceeds via Kullback–Leibler divergence penalization.
-- *Coefficient + curvature summaries*: when an additional positive
+- **Coefficient + curvature summaries**: when an additional positive
   semidefinite matrix $`\mathbf{A}`$ (e.g., information matrix or
   variance–covariance matrix) is provided, integration proceeds via
   Mahalanobis distance penalization.
 
-**High-dimensional variable selection**  
-Supports penalized estimation with ridge, lasso, and elastic net
-penalties for variable selection and shrinkage. For robust predictor
-identification, stability selection is also available, which aggregates
-results across subsamples to control the expected number of false
-discoveries in high-dimensional settings.
+**Robustness to clustered and tied event times data**  
+The package accounts for two structural features common in real-world
+survival data. Between-cluster heterogeneity arising from multi-site
+enrollment, matched designs, or hierarchical sampling is accommodated
+via stratified partial likelihoods, which allow the baseline hazard to
+vary freely across strata rather than imposing a common baseline. Tied
+event times frequently occur when follow-up is recorded on a coarse time
+scale such as daily records, scheduled clinical visits, or discretized
+follow-up intervals, and are handled through tie-correction methods.
 
-**High-dimensional variable selection**  
-Supports penalized estimation with ridge, lasso, and elastic net
-penalties, as well as stability selection for robust identification of
-relevant predictors in high-dimensional settings.
+**High-dimensional variable selection** Penalized estimation with ridge,
+lasso, and elastic net penalties is supported for variable selection and
+shrinkage, with tuning parameters selected via cross-validation as
+default. However, cross-validation optimizes predictive performance
+rather than variable selection stability, and the selected predictor set
+can vary considerably across repeated runs or minor perturbations of the
+data. For settings where a reproducible and trustworthy shortlist of
+predictors is needed, stability selection is also available, which
+aggregates variable inclusion frequencies across subsamples to identify
+predictors that are consistently selected regardless of which subjects
+happen to be in the training set.
 
-**Privacy-preserving by design**  
-Summary-level integration modes require only aggregate statistics from
-the external source—no individual-level data access is needed.
+**Ensemble integration via bagged estimation**  
+Besides cross-validated LASSO and stability selection, the package
+supports an ensemble strategy that combines bootstrapping, external-data
+integration, and model aggregation—conceptually similar to bootstrap
+aggregation (bagging). This bagged integration approach reduces variance
+and improves predictive robustness compared to relying solely on a
+single cross-validated integrated LASSO model.
+
+**Flexible cross-validation criteria**  
+Model tuning supports a broad range of cross-validation criteria.
+Discrimination- based measures include Harrell’s concordance index
+(C-index) (Harrell et al. 1982), and partial likelihood–based criteria
+include the Verweij & Van Houwelingen (V&VH) loss and the
+cross-validated linear predictor loss. For full details on each
+criterion, see **Appendix: CV Criteria**.
+
+**Pathwise solution for integration weights**  
+To select the integration weight $`\eta`$ that governs the strength of
+external borrowing, the package provides two complementary tuning
+strategies: (i) a grid search approach based on a pre-specified sequence
+of candidate values, and (ii) an adaptive tuning strategy using Bayesian
+optimization to directly explore the integration weight space, which is
+particularly efficient when evaluating each candidate is computationally
+expensive.
 
 ------------------------------------------------------------------------
 
@@ -104,6 +136,11 @@ corresponding set of functions:
     information only), the user can perform data integration via the
     quadratic Mahalanobis distance.
 
+Throughout all three settings, the **stratified model** is the default
+implementation. The conventional non-stratified model, which assumes a
+shared baseline hazard for all observations, is treated as a special
+case obtained by assigning all subjects to a single stratum.
+
 ### 2.1 Individual-Level External Data Integration
 
 When individual-level data are available for both the internal and
@@ -151,7 +188,7 @@ The user should rely on prior knowledge or problem-specific
 considerations to determine an appropriate range of $`\eta`$’s.
 
 ``` r
-eta_list <- generate_eta(method = "exponential", n = 50, max_eta = 10000)
+eta_list <- generate_eta(method = "exponential", n = 50, max_eta = 100)
 
 fit.cox_indi <- cox_indi(
   z_int = z_int,
@@ -171,7 +208,8 @@ $`\eta`$ that yields the best predictive performance. We adopt
 cross-validation and consider four criteria: two based on Harrell’s
 C-index (Harrell et al. 1982)—`CIndex_pooled` and
 `CIndex_foldaverage`—and two loss-based criteria—`LinPred` and `V&VH`.
-For details, please refer to Page: *Appendix: CV Criteria*.
+For cross validation methods details, please refer to Page: **Appendix:
+CV Criteria**.
 
 We provide an example illustrating the use of the cross-validation
 function
@@ -196,22 +234,27 @@ cvfit.cox_indi <- cv.cox_indi(
 
 ### 2.2 Kullback–Leibler Divergence Data Integration
 
-Due to practical or regulatory constraints, only summary-level
-information may be available from the external source, typically in the
-form of estimated regression coefficients
+External individual-level data are often inaccessible due to data
+governance, privacy regulations, or institutional agreements; only
+summary-level information may be available from the external source,
+typically in the form of estimated regression coefficients
 $`\widetilde{\boldsymbol{\beta}}`$ or an external risk score
-$`Z^{\top}\widetilde{\boldsymbol{\beta}}`$. In such cases, data
-integration can be carried out through a Kullback–Leibler divergence
-formulation. The minimal input required for this approach is
+$`r(Z,\widetilde{\boldsymbol{\beta}})`$. In such cases, data integration
+can be carried out through a Kullback–Leibler divergence formulation.
+The minimal input required for this approach is
 $`\widetilde{\boldsymbol{\beta}}`$, corresponding to the coefficient
 estimates obtained from the external model, or the external risk score.
-For methodology details, please refer to Page: *Appendix: coxkl*.
+For methodology details, please refer to Page: **Appendix: Cox KL
+Divergence**.
 
 We present the usage of the functions for
 [low-dimensional](#sec_coxkl_low) and
-[high-dimensional](#sec_coxkl_high) settings separately.
+[high-dimensional](#sec_coxkl_high) settings separately. Across all
+implementations, the `stratum` argument controls between-stratum
+heterogeneity; when no stratum information is provided, all subjects are
+automatically assigned to a single stratum.
 
-##### Low-Dimensional Integration
+#### Low-Dimensional Integration
 
 We begin with **low-dimensional** settings, where the number of
 predictors is modest. Similarly, we provide a built-in low-dimensional
@@ -285,8 +328,8 @@ integration parameter in the KL-integrated Cox model. We consider four
 criteria: two based on Harrell’s C-index (Harrell et al.
 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two loss-based
 criteria—`LinPred` and `V&VH`. For details, please refer to Page:
-*Appendix: CV Criteria*. Below is an example using the default `"V&VH"`
-criterion:
+**Appendix: CV Criteria**. Below is an example using the default
+`"V&VH"` criterion:
 
 ``` r
 cvfit.coxkl <- cv.coxkl(
@@ -340,8 +383,8 @@ approximation and is generally suitable when the number of tied events
 is moderate, whereas the exact method yields more accurate inference in
 the presence of extensive ties at the cost of increased computational
 burden. The following example demonstrates the use of the Breslow
-method. For methodology details, please refer to Page: *Appendix:
-coxkl_ties*.
+method. For methodology details, please refer to Page: **Appendix: Cox
+KL: Tied Event Times**.
 
 ``` r
 time_ties <- round(time, 2)   # Rounding time introduces ties for demonstration
@@ -512,7 +555,7 @@ procedure:
 The supported criteria also include two based on Harrell’s C-index
 (Harrell et al. 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two
 loss-based criteria—`LinPred` and `V&VH`. For details, please refer to
-Page: *Appendix: CV Criteria*.
+Page: **Appendix: CV Criteria**.
 
 Below we demonstrate tuning $`\eta`$ using 5-fold cross-validation and
 the `V&VH` criterion for the LASSO-penalized integrated model
@@ -801,18 +844,16 @@ internal population, and a higher degree of transfer is warranted.
 
 ### 2.3 Mahalanobis Distance Data Integration
 
-Due to practical or regulatory constraints, only summary-level
-information may be available from the external source. Compared with
-[Kullback–Leibler Divergence Data Integration](#sec_coxkl), the
-Mahalanobis distance approach is applicable when the user can also
-provide a positive semidefinite matrix $`\mathbf{A}`$ summarizing the
-curvature of the external objective function (e.g., an information
-matrix, a variance–covariance matrix, or variance information only). The
-minimal input required for this approach is
-$`\widetilde{\boldsymbol{\beta}}`$ and $`\mathbf{A}`$. If $`\mathbf{A}`$
-is not supplied, the function defaults to using the identity matrix,
-which reduces the Mahalanobis distance penalty to the squared Euclidean
-distance.
+Compared with [Kullback–Leibler Divergence Data
+Integration](#sec_coxkl), the Mahalanobis distance approach is
+applicable when the user can also provide a positive semidefinite matrix
+$`\mathbf{A}`$ summarizing the curvature of the external objective
+function (e.g., an information matrix, a variance–covariance matrix, or
+variance information only). The minimal input required for this approach
+is $`\widetilde{\boldsymbol{\beta}}`$ and $`\mathbf{A}`$. If
+$`\mathbf{A}`$ is not supplied, the function defaults to using the
+identity matrix, which reduces the Mahalanobis distance penalty to the
+squared Euclidean distance.
 
 We present the usage of the functions for
 [low-dimensional](#sec_coxMD_low) and
@@ -881,8 +922,8 @@ integration parameter in the KL-integrated Cox model. We consider four
 criteria: two based on Harrell’s C-index (Harrell et al.
 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two loss-based
 criteria—`LinPred` and `V&VH`. For details, please refer to Page:
-*Appendix: CV Criteria*. Below is an example using the default `"V&VH"`
-criterion:
+**Appendix: CV Criteria**. Below is an example using the default
+`"V&VH"` criterion:
 
 ``` r
 cvfit.cox_MDTL <- cv.cox_MDTL(
@@ -1034,7 +1075,7 @@ procedure:
 The supported criteria also include two based on Harrell’s C-index
 (Harrell et al. 1982)—`CIndex_pooled` and `CIndex_foldaverage`—and two
 loss-based criteria—`LinPred` and `V&VH`. For details, please refer to
-Page: *Appendix: CV Criteria*.
+Page: **Appendix: CV Criteria**.
 
 Below we demonstrate tuning $`\eta`$ using 5-fold cross-validation and
 the `V&VH` criterion for the LASSO-penalized integrated model
@@ -1088,7 +1129,8 @@ this framework through Bregman divergence, allowing improved efficiency
 while respecting the matched-set structure. The remainder of this
 section demonstrates the core usage and workflow. Standard matched
 case–control or matched cohort studies can be viewed as special cases of
-the NCC design.
+the NCC design. For methodology details, please refer to Page:
+**Appendix: NCC KL Divergence**.
 
 We adopt the KL-divergence approach for data integration and present the
 usage of the functions for [low-dimensional](#sec_low_cc) and
@@ -1168,7 +1210,7 @@ $`\eta`$.
 
 The supported criteria include predicted deviance (`loss`), `AUC`
 (Hanley and McNeil 1982), and Brier Score (`Brier`)(Glenn et al. 1950).
-For details, please refer to Page: *Appendix: CV Criteria*.
+For details, please refer to Page: **Appendix: CV Criteria**.
 
 Below we demonstrate tuning $`\eta`$ using 5-fold cross-validation and
 the `V&VH` criterion for the LASSO-penalized integrated model
