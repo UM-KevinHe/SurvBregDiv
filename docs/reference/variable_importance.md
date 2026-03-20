@@ -20,6 +20,7 @@ variable_importance(
   nonzero_tol = 1e-10,
   seed = NULL,
   message = FALSE,
+  ncores = 1,
   ...
 )
 ```
@@ -70,6 +71,10 @@ variable_importance(
 - message:
 
   Logical. Whether to print progress messages. Default FALSE.
+
+- ncores:
+
+  Integer. Number of parallel cores. Default 1 (sequential execution).
 
 - ...:
 

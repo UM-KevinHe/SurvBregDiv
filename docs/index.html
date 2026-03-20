@@ -67,22 +67,30 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="survbregdiv-transfer-learning-for-time-to-event-modelling-via-bregman-divergence">SurvBregDiv: Transfer Learning for Time-to-Event Modelling via Bregman Divergence<a class="anchor" aria-label="anchor" href="#survbregdiv-transfer-learning-for-time-to-event-modelling-via-bregman-divergence"></a>
 </h1></div>
-<p><strong>SurvBregDiv</strong> provides flexible and efficient tools for integrating external risk scores into time-to-event models (including Cox proportional hazards models and nested case–control models), while properly accounting for population heterogeneity. The package enables robust estimation, improved predictive performance, and user-friendly workflows for modern survival analysis.</p>
-<div class="section level2">
-<h2 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
-</h2>
+<p>The <strong>SurvBregDiv</strong> package implements a Bregman-divergence-based transfer learning framework for survival analysis, enabling principled borrowing of external information while explicitly accommodating population heterogeneity between the internal study and external sources.</p>
+<p>The package supports two primary study designs: full-cohort Cox proportional hazards models and nested case–control (NCC) designs based on conditional logistic regression on sampled risk sets.</p>
+<div class="section level3">
+<h3 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
+</h3>
+<p><strong>Three external data integration modes</strong><br>
+Depending on the type of external data available, the package supports:</p>
 <ul>
-<li><p><strong>Integration of External Risk Scores</strong><br>
-Seamlessly incorporate predictions from <em>any</em> external risk model into your analysis pipeline.</p></li>
-<li><p><strong>Population Heterogeneity Adjustment</strong><br>
-Adjusts for distributional differences between the external model’s source population and the target study population.</p></li>
-<li><p><strong>Multiple Data Structures and Modelling Settings</strong><br>
-Supports both Cox proportional hazards models and nested case–control designs, with functionality for low-dimensional inference and high-dimensional feature selection.</p></li>
-<li><p><strong>Improved Estimation and Prediction</strong><br>
-Empirically demonstrates efficiency gains in parameter estimation and enhanced predictive accuracy.</p></li>
-<li><p><strong>Built-In Cross-Validation</strong><br>
-Automated procedures for tuning and penalization parameter selection.</p></li>
+<li>
+<strong>Individual-level data</strong>: when full covariate and outcome data from an external cohort are accessible, integration is performed via a weighted pseudo-likelihood framework.</li>
+<li>
+<strong>Coefficient-level summaries</strong>: when only external regression coefficients <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math> are available, integration proceeds via Kullback–Leibler divergence penalization.</li>
+<li>
+<strong>Coefficient + curvature summaries</strong>: when an additional positive semidefinite matrix <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝐀</mi><annotation encoding="application/x-tex">\mathbf{A}</annotation></semantics></math> (e.g., information matrix or variance–covariance matrix) is provided, integration proceeds via Mahalanobis distance penalization.</li>
 </ul>
+<p><strong>Robustness to clustered and tied event times data</strong><br>
+The package accounts for two structural features common in real-world survival data. Between-cluster heterogeneity arising from multi-site enrollment, matched designs, or hierarchical sampling is accommodated via stratified partial likelihoods, which allow the baseline hazard to vary freely across strata rather than imposing a common baseline. Tied event times frequently occur when follow-up is recorded on a coarse time scale such as daily records, scheduled clinical visits, or discretized follow-up intervals, and are handled through tie-correction methods.</p>
+<p><strong>High-dimensional variable selection</strong> Penalized estimation with ridge, lasso, and elastic net penalties is supported for variable selection and shrinkage, with tuning parameters selected via cross-validation as default. However, cross-validation optimizes predictive performance rather than variable selection stability, and the selected predictor set can vary considerably across repeated runs or minor perturbations of the data. For settings where a reproducible and trustworthy shortlist of predictors is needed, stability selection is also available, which aggregates variable inclusion frequencies across subsamples to identify predictors that are consistently selected regardless of which subjects happen to be in the training set.</p>
+<p><strong>Ensemble integration via bagged estimation</strong><br>
+Besides cross-validated LASSO and stability selection, the package supports an ensemble strategy that combines bootstrapping, external-data integration, and model aggregation—conceptually similar to bootstrap aggregation (bagging). This bagged integration approach reduces variance and improves predictive robustness compared to relying solely on a single cross-validated integrated LASSO model.</p>
+<p><strong>Flexible cross-validation criteria</strong><br>
+Model tuning supports a broad range of cross-validation criteria. Discrimination- based measures include Harrell’s concordance index (C-index) [@harrell1982evaluating], and partial likelihood–based criteria include the Verweij &amp; Van Houwelingen (V&amp;VH) loss and the cross-validated linear predictor loss. For full details on each criterion, see <strong>Appendix: CV Criteria</strong>.</p>
+<p><strong>Pathwise solution for integration weights</strong><br>
+To select the integration weight <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math> that governs the strength of external borrowing, the package provides two complementary tuning strategies: (i) a grid search approach based on a pre-specified sequence of candidate values, and (ii) an adaptive tuning strategy using Bayesian optimization to directly explore the integration weight space, which is particularly efficient when evaluating each candidate is computationally expensive.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>

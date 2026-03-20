@@ -16,6 +16,7 @@ variable_importance(
   nonzero_tol = 1e-10,
   seed = NULL,
   message = FALSE,
+  ncores = 1,
   ...
 )
 }
@@ -42,6 +43,8 @@ it will be converted to a numeric matrix via \code{as.matrix(z)}.}
 \item{seed}{Optional integer seed for reproducibility.}
 
 \item{message}{Logical. Whether to print progress messages. Default FALSE.}
+
+\item{ncores}{Integer. Number of parallel cores. Default 1 (sequential execution).}
 
 \item{...}{Additional arguments passed to \code{cv.coxkl_enet()} (e.g., \code{alpha},
 \code{lambda}, \code{nlambda}, \code{lambda.min.ratio}, \code{nfolds},

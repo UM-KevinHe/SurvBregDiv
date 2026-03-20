@@ -29,6 +29,7 @@ cox_MDTL_enet.StabSelect(
   seed = NULL,
   B = 50,
   fraction_sample = 0.5,
+  ncores = 1,
   ...
 )
 ```
@@ -130,6 +131,10 @@ cox_MDTL_enet.StabSelect(
 
   Numeric in `(0, 1]`. Fraction of the original sample size used in each
   replicate. Default is `0.5`.
+
+- ncores:
+
+  Integer. Number of parallel cores. Default 1 (sequential execution).
 
 - ...:
 

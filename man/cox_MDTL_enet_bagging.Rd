@@ -22,6 +22,7 @@ cox_MDTL_enet_bagging(
   c_index_stratum = NULL,
   message = FALSE,
   seed = NULL,
+  ncores = 1,
   ...
 )
 }
@@ -64,6 +65,8 @@ evaluation (may differ from model stratification).}
 \item{message}{Logical indicating whether to print progress. Default is \code{FALSE}.}
 
 \item{seed}{Optional integer seed for reproducibility.}
+
+\item{ncores}{Integer. Number of parallel cores. Default 1 (sequential execution).}
 
 \item{...}{Additional arguments passed to \code{cv.cox_MDTL_enet}.}
 }

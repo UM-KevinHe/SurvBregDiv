@@ -12,6 +12,7 @@
 #' @param fraction_sample Numeric in \code{(0, 1]}. Fraction of the original
 #'   sample size used in each replicate (without replacement if subsampling is
 #'   used). Default is \code{0.5}.
+#' @param ncores Integer. Number of parallel cores. Default 1 (sequential execution).
 #'
 #' @return
 #' An object of class \code{"StabSelect"}, which is a list containing:
@@ -58,6 +59,7 @@ coxkl_enet.StabSelect <- function(z, delta, time, stratum = NULL, RS = NULL, bet
                                   message = FALSE, seed = NULL,
                                   B = 50,
                                   fraction_sample = 0.5,
+                                  ncores = 1,
                                   ...) {
 
   if (!is.null(seed)) set.seed(seed)
@@ -87,16 +89,17 @@ coxkl_enet.StabSelect <- function(z, delta, time, stratum = NULL, RS = NULL, bet
   }
 
   n_lambda_seq <- length(lambda)
-  stability_counts <- matrix(0, nrow = p_vars, ncol = n_lambda_seq)
-  rownames(stability_counts) <- var_names
 
-  if(message) {
-    message(sprintf("Starting Stability Selection with B=%d replicates...", B))
-    pb <- txtProgressBar(min = 0, max = B, style = 3)
-  }
+  ncores <- max(1L, as.integer(ncores))
 
-  for (b in 1:B) {
-    if(message) setTxtProgressBar(pb, b)
+  # Capture ... for passing to workers
+  dots <- list(...)
+
+  # Define worker function
+  stab_one <- function(b, z, delta, time, stratum, RS, beta, etas, alpha, lambda,
+                       nfolds, cv.criteria, n_full, p_vars, n_lambda_seq,
+                       fraction_sample, seed, dots) {
+    if (!is.null(seed)) set.seed(seed + b)
 
     sub_idx <- sort(sample(seq_len(n_full), size = floor(fraction_sample * n_full)))
     z_sub <- z[sub_idx, , drop = FALSE]
@@ -105,45 +108,96 @@ coxkl_enet.StabSelect <- function(z, delta, time, stratum = NULL, RS = NULL, bet
     stratum_sub <- if(!is.null(stratum)) stratum[sub_idx] else NULL
     RS_sub <- if(!is.null(RS)) RS[sub_idx] else NULL
 
-    tryCatch({
-      cv_fit <- cv.coxkl_enet(
-        z = z_sub, delta = delta_sub, time = time_sub, stratum = stratum_sub,
-        RS = RS_sub, beta = beta,
-        etas = etas, alpha = alpha,
-        lambda = lambda,
-        nfolds = nfolds,
-        cv.criteria = cv.criteria,
-        message = FALSE,
-        ...
-      )
+    result <- tryCatch({
+      cv_fit <- do.call(cv.coxkl_enet, c(
+        list(
+          z = z_sub, delta = delta_sub, time = time_sub, stratum = stratum_sub,
+          RS = RS_sub, beta = beta,
+          etas = etas, alpha = alpha,
+          lambda = lambda,
+          nfolds = nfolds,
+          cv.criteria = cv.criteria,
+          message = FALSE
+        ),
+        dots
+      ))
 
       best_eta <- cv_fit$best$best_eta
 
-      fit_best <- coxkl_enet(
-        z = z_sub, delta = delta_sub, time = time_sub, stratum = stratum_sub,
-        RS = RS_sub, beta = beta,
-        eta = best_eta,
-        lambda = lambda,
-        alpha = alpha,
-        ...
-      )
+      fit_best <- do.call(coxkl_enet, c(
+        list(
+          z = z_sub, delta = delta_sub, time = time_sub, stratum = stratum_sub,
+          RS = RS_sub, beta = beta,
+          eta = best_eta,
+          lambda = lambda,
+          alpha = alpha
+        ),
+        dots
+      ))
 
       coef_matrix <- fit_best$beta
       selection_mat <- (coef_matrix != 0) * 1.0
 
       if(ncol(selection_mat) < n_lambda_seq) {
-        selection_mat_padded <- matrix(0, nrow=p_vars, ncol=n_lambda_seq)
+        selection_mat_padded <- matrix(0, nrow = p_vars, ncol = n_lambda_seq)
         selection_mat_padded[, 1:ncol(selection_mat)] <- selection_mat
         selection_mat <- selection_mat_padded
       }
 
-      stability_counts <- stability_counts + selection_mat
+      selection_mat
 
     }, error = function(e) {
+      matrix(0, nrow = p_vars, ncol = n_lambda_seq)
     })
+
+    return(result)
   }
 
-  if(message) close(pb)
+  if(message) {
+    message(sprintf("Starting Stability Selection with B=%d replicates on %d core(s)...", B, ncores))
+  }
+
+  if (ncores == 1L) {
+    # Sequential execution with progress bar
+    if(message) pb <- txtProgressBar(min = 0, max = B, style = 3)
+    res_list <- vector("list", B)
+    for (b in 1:B) {
+      res_list[[b]] <- stab_one(b, z, delta, time, stratum, RS, beta, etas, alpha, lambda,
+                                nfolds, cv.criteria, n_full, p_vars, n_lambda_seq,
+                                fraction_sample, seed, dots)
+      if(message) setTxtProgressBar(pb, b)
+    }
+    if(message) close(pb)
+  } else {
+    # Parallel execution
+    cl <- parallel::makeCluster(ncores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+
+    # Set up parallel RNG
+    if (!is.null(seed)) {
+      RNGkind("L'Ecuyer-CMRG")
+      set.seed(seed)
+      parallel::clusterSetRNGStream(cl, seed)
+    }
+
+    res_list <- parallel::parLapply(
+      cl, seq_len(B), stab_one,
+      z = z, delta = delta, time = time, stratum = stratum,
+      RS = RS, beta = beta, etas = etas, alpha = alpha, lambda = lambda,
+      nfolds = nfolds, cv.criteria = cv.criteria,
+      n_full = n_full, p_vars = p_vars, n_lambda_seq = n_lambda_seq,
+      fraction_sample = fraction_sample, seed = seed, dots = dots
+    )
+  }
+
+  if(message) message("Done.")
+
+  # Aggregate results
+  stability_counts <- matrix(0, nrow = p_vars, ncol = n_lambda_seq)
+  rownames(stability_counts) <- var_names
+  for (sel_mat in res_list) {
+    stability_counts <- stability_counts + sel_mat
+  }
 
   stability_probs <- stability_counts / B
 
@@ -170,6 +224,7 @@ coxkl_enet.StabSelect <- function(z, delta, time, stratum = NULL, RS = NULL, bet
 #'   selection. Default is \code{50}.
 #' @param fraction_sample Numeric in \code{(0, 1]}. Fraction of the original sample
 #'   size used in each replicate. Default is \code{0.5}.
+#' @param ncores Integer. Number of parallel cores. Default 1 (sequential execution).
 #'
 #' @return
 #' An object of class \code{"StabSelect"} containing:
@@ -216,6 +271,7 @@ cox_MDTL_enet.StabSelect <- function(z, delta, time, stratum = NULL,
                                      message = FALSE, seed = NULL,
                                      B = 50,
                                      fraction_sample = 0.5,
+                                     ncores = 1,
                                      ...) {
 
   if (!is.null(seed)) set.seed(seed)
@@ -246,16 +302,17 @@ cox_MDTL_enet.StabSelect <- function(z, delta, time, stratum = NULL,
   }
 
   n_lambda_seq <- length(lambda)
-  stability_counts <- matrix(0, nrow = p_vars, ncol = n_lambda_seq)
-  rownames(stability_counts) <- var_names
 
-  if(message) {
-    message(sprintf("Starting Stability Selection (MDTL) with B=%d...", B))
-    pb <- txtProgressBar(min = 0, max = B, style = 3)
-  }
+  ncores <- max(1L, as.integer(ncores))
 
-  for (b in 1:B) {
-    if(message) setTxtProgressBar(pb, b)
+  # Capture ... for passing to workers
+  dots <- list(...)
+
+  # Define worker function
+  stab_one <- function(b, z, delta, time, stratum, beta, vcov, etas, alpha, lambda,
+                       nfolds, cv.criteria, n_full, p_vars, n_lambda_seq,
+                       fraction_sample, seed, dots) {
+    if (!is.null(seed)) set.seed(seed + b)
 
     sub_idx <- sort(sample(seq_len(n_full), size = floor(fraction_sample * n_full)))
     z_sub <- z[sub_idx, , drop = FALSE]
@@ -263,45 +320,96 @@ cox_MDTL_enet.StabSelect <- function(z, delta, time, stratum = NULL,
     time_sub <- time[sub_idx]
     stratum_sub <- if(!is.null(stratum)) stratum[sub_idx] else NULL
 
-    tryCatch({
-      cv_fit <- cv.cox_MDTL_enet(
-        z = z_sub, delta = delta_sub, time = time_sub, stratum = stratum_sub,
-        beta = beta, vcov = vcov,
-        etas = etas, alpha = alpha,
-        lambda = lambda,
-        nfolds = nfolds,
-        cv.criteria = cv.criteria,
-        message = FALSE,
-        ...
-      )
+    result <- tryCatch({
+      cv_fit <- do.call(cv.cox_MDTL_enet, c(
+        list(
+          z = z_sub, delta = delta_sub, time = time_sub, stratum = stratum_sub,
+          beta = beta, vcov = vcov,
+          etas = etas, alpha = alpha,
+          lambda = lambda,
+          nfolds = nfolds,
+          cv.criteria = cv.criteria,
+          message = FALSE
+        ),
+        dots
+      ))
 
       best_eta <- cv_fit$best$best_eta
 
-      fit_best <- cox_MDTL_enet(
-        z = z_sub, delta = delta_sub, time = time_sub, stratum = stratum_sub,
-        beta = beta, vcov = vcov,
-        eta = best_eta,
-        alpha = alpha,
-        lambda = lambda,
-        ...
-      )
+      fit_best <- do.call(cox_MDTL_enet, c(
+        list(
+          z = z_sub, delta = delta_sub, time = time_sub, stratum = stratum_sub,
+          beta = beta, vcov = vcov,
+          eta = best_eta,
+          alpha = alpha,
+          lambda = lambda
+        ),
+        dots
+      ))
 
       coef_matrix <- fit_best$beta
       selection_mat <- (coef_matrix != 0) * 1.0
 
       if(ncol(selection_mat) < n_lambda_seq) {
-        selection_mat_padded <- matrix(0, nrow=p_vars, ncol=n_lambda_seq)
+        selection_mat_padded <- matrix(0, nrow = p_vars, ncol = n_lambda_seq)
         selection_mat_padded[, 1:ncol(selection_mat)] <- selection_mat
         selection_mat <- selection_mat_padded
       }
 
-      stability_counts <- stability_counts + selection_mat
+      selection_mat
 
     }, error = function(e) {
+      matrix(0, nrow = p_vars, ncol = n_lambda_seq)
     })
+
+    return(result)
   }
 
-  if(message) close(pb)
+  if(message) {
+    message(sprintf("Starting Stability Selection (MDTL) with B=%d on %d core(s)...", B, ncores))
+  }
+
+  if (ncores == 1L) {
+    # Sequential execution with progress bar
+    if(message) pb <- txtProgressBar(min = 0, max = B, style = 3)
+    res_list <- vector("list", B)
+    for (b in 1:B) {
+      res_list[[b]] <- stab_one(b, z, delta, time, stratum, beta, vcov, etas, alpha, lambda,
+                                nfolds, cv.criteria, n_full, p_vars, n_lambda_seq,
+                                fraction_sample, seed, dots)
+      if(message) setTxtProgressBar(pb, b)
+    }
+    if(message) close(pb)
+  } else {
+    # Parallel execution
+    cl <- parallel::makeCluster(ncores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+
+    # Set up parallel RNG
+    if (!is.null(seed)) {
+      RNGkind("L'Ecuyer-CMRG")
+      set.seed(seed)
+      parallel::clusterSetRNGStream(cl, seed)
+    }
+
+    res_list <- parallel::parLapply(
+      cl, seq_len(B), stab_one,
+      z = z, delta = delta, time = time, stratum = stratum,
+      beta = beta, vcov = vcov, etas = etas, alpha = alpha, lambda = lambda,
+      nfolds = nfolds, cv.criteria = cv.criteria,
+      n_full = n_full, p_vars = p_vars, n_lambda_seq = n_lambda_seq,
+      fraction_sample = fraction_sample, seed = seed, dots = dots
+    )
+  }
+
+  if(message) message("Done.")
+
+  # Aggregate results
+  stability_counts <- matrix(0, nrow = p_vars, ncol = n_lambda_seq)
+  rownames(stability_counts) <- var_names
+  for (sel_mat in res_list) {
+    stability_counts <- stability_counts + sel_mat
+  }
 
   stability_probs <- stability_counts / B
 

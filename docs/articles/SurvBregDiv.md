@@ -20,43 +20,65 @@ Depending on the type of external data available, the package supports:
 - **Individual-level data**: when full covariate and outcome data from
   an external cohort are accessible, integration is performed via a
   weighted pseudo-likelihood framework.
-- **Coefficient-level summaries**: when only external regression
-  coefficients $`\widetilde{\boldsymbol{\beta}}`$ are available,
-  integration proceeds via Kullback–Leibler divergence penalization.
-- **Coefficient + curvature summaries**: when an additional positive
-  semidefinite matrix $`\mathbf{A}`$ (e.g., information matrix or
-  variance–covariance matrix) is provided, integration proceeds via
-  Mahalanobis distance penalization.
 
-**Robustness to clustered and tied event times data**  
-The package accounts for two structural features common in real-world
-survival data. Between-cluster heterogeneity arising from multi-site
-enrollment, matched designs, or hierarchical sampling is accommodated
-via stratified partial likelihoods, which allow the baseline hazard to
-vary freely across strata rather than imposing a common baseline. Tied
-event times frequently occur when follow-up is recorded on a coarse time
-scale such as daily records, scheduled clinical visits, or discretized
-follow-up intervals, and are handled through tie-correction methods.
+- **Coefficient-level summaries**: when only external regression
+  coefficients $`\widetilde{\boldsymbol{\beta}}`$ or external risk
+  scores $`r(Z,\widetilde{\boldsymbol{\beta}})`$ are available,
+  integration proceeds via Kullback–Leibler divergence penalization.
+
+- **Coefficient + curvature summaries**: when
+  $`\widetilde{\boldsymbol{\beta}}`$ or
+  $`r(Z,\widetilde{\boldsymbol{\beta}})`$ are available, with an
+  additional positive semidefinite matrix $`\mathbf{A}`$ (e.g.,
+  information matrix or variance–covariance matrix) is provided,
+  integration proceeds via Mahalanobis distance penalization.
+
+  *Note: These three modes are not mutually exclusive. If
+  individual-level external data are available, one may first fit an
+  external model to obtain $`\widetilde{\boldsymbol{\beta}}`$ (and
+  optionally $`\mathbf{A}`$), then proceed with KL or Mahalanobis
+  integration. Conversely, if only $`\widetilde{\boldsymbol{\beta}}`$ is
+  available without curvature information, setting
+  $`\mathbf{A} = \mathbf{I}`$ reduces the Mahalanobis distance to the
+  squared Euclidean distance, making the Mahalanobis framework
+  applicable in this setting as well.*
+
+**Robustness to clustered data**  
+Real-world survival data often exhibit between-cluster heterogeneity due
+to multi-site enrollment, matched case-control designs, or hierarchical
+sampling structures. Ignoring such clustering can lead to biased hazard
+ratio estimates and invalid standard errors. The package addresses this
+issue through stratified partial likelihoods, which allow the baseline
+hazard function to vary freely across strata rather than imposing a
+common baseline.
+
+**Robustness to tied event times**  
+Tied event times frequently arise when follow-up is recorded on a coarse
+time scale, such as daily records, scheduled clinical visits, or
+discretized follow-up intervals. Direct application to heavily tied data
+on the standard Cox partial likelihood (which assumes a continuous time
+scale with no ties) can produce biased estimates due to incorrect
+probability construction. The package incorporates tie-correction
+methods—including the Breslow and Efron approximations—to adjust the
+risk set contributions at tied event times and restore the validity of
+partial likelihood inference.
 
 **High-dimensional variable selection** Penalized estimation with ridge,
 lasso, and elastic net penalties is supported for variable selection and
-shrinkage, with tuning parameters selected via cross-validation as
+shrinkage, with tuning parameters selected via cross-validation by
 default. However, cross-validation optimizes predictive performance
 rather than variable selection stability, and the selected predictor set
-can vary considerably across repeated runs or minor perturbations of the
-data. For settings where a reproducible and trustworthy shortlist of
-predictors is needed, stability selection is also available, which
-aggregates variable inclusion frequencies across subsamples to identify
-predictors that are consistently selected regardless of which subjects
-happen to be in the training set.
+can vary across repeated runs or minor data perturbations. For users who
+need a reproducible and trustworthy shortlist of important predictors,
+the package provides a stability selection-based variable importance
+feature that identifies predictors consistently selected across
+resampled datasets.
 
 **Ensemble integration via bagged estimation**  
-Besides cross-validated LASSO and stability selection, the package
-supports an ensemble strategy that combines bootstrapping, external-data
-integration, and model aggregation—conceptually similar to bootstrap
-aggregation (bagging). This bagged integration approach reduces variance
-and improves predictive robustness compared to relying solely on a
-single cross-validated integrated LASSO model.
+The package supports an ensemble strategy that combines bootstrapping,
+external-data integration, and model aggregation. This bagged
+integration approach reduces variance and improves predictive robustness
+compared to relying on a single cross-validated integrated model.
 
 **Flexible cross-validation criteria**  
 Model tuning supports a broad range of cross-validation criteria.
@@ -74,6 +96,17 @@ of candidate values, and (ii) an adaptive tuning strategy using Bayesian
 optimization to directly explore the integration weight space, which is
 particularly efficient when evaluating each candidate is computationally
 expensive.
+
+### Package Workflow Overview
+
+The following flowchart illustrates the overall workflow of the
+`SurvBregDiv` package. Users first select a study design (full-cohort
+Cox model or nested case–control), then choose an integration strategy
+based on the type of external information available. The package
+supports both low-dimensional estimation and high-dimensional penalized
+regression, with a suite of cross-cutting features applicable across
+methods. ![Plot generated in SurvBregDiv
+vignette](../reference/figures/SurvBregDiv_flowchart.svg)
 
 ------------------------------------------------------------------------
 
@@ -112,29 +145,40 @@ Depending on the type of external data available, the framework supports
 three broad methodological settings, each implemented through a
 corresponding set of functions:
 
-1.  [Individual-Level External Data Integration](#sec_indi) When
-    individual-level external data are accessible (e.g., for
-    time-to-event outcomes, the user has covariates, survival outcomes,
-    and follow-up times from an external cohort), the software provides
-    the function such as
+1.  [Individual-Level External Data (via weighted
+    pseudo-likelihood)](#sec_indi) When individual-level external data
+    are accessible (e.g., for time-to-event outcomes, the user has
+    covariates, survival outcomes, and follow-up times from an external
+    cohort), the software provides the function such as
     [`cox_indi()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cox_indi.md)
     and related downstream utilities. These functions implement data
     integration through a weighted pseudo-likelihood framework (Wang and
     Zidek 2005; Gao and Carroll 2017).
 
-2.  [Kullback–Leibler Divergence Data Integration](#sec_coxkl) If, due
-    to practical or regulatory constraints, the external source can
-    provide only summary-level estimated regression coefficients
-    $`\widetilde{\boldsymbol{\beta}}`$, the user can perform data
-    integration via the Kullback–Leibler divergence.
+2.  [Summary-level External Coefficients / risk scores (via KL
+    divergence)](#sec_coxkl) When only summary-level regression
+    coefficients $`\widetilde{\boldsymbol{\beta}}`$ or external risk
+    scores $`r(\mathbf{Z}, \widetilde{\boldsymbol{\beta}})`$ are
+    available, the user can perform data integration via the
+    Kullback–Leibler divergence.
 
-3.  [Mahalanobis Distance Data Integration](#sec_coxmaha) If, in
-    addition to estimated external regression coefficients, the user can
-    also provide a positive semidefinite matrix $`\mathbf{A}`$
-    summarizing the curvature of the external objective function (e.g.,
-    an information matrix, a variance–covariance matrix, or variance
-    information only), the user can perform data integration via the
-    quadratic Mahalanobis distance.
+3.  [Summary-level External Coefficients / risk scores + Curvature (via
+    Mahalanobis distance)](#sec_coxmaha) When
+    $`\widetilde{\boldsymbol{\beta}}`$ or
+    $`r(\mathbf{Z}, \widetilde{\boldsymbol{\beta}})`$ are available
+    along with a positive semidefinite matrix $`\mathbf{A}`$ (e.g.,
+    information or variance–covariance matrix), the user can perform
+    data integration via the quadratic Mahalanobis distance.
+
+*Note: These three settings are not mutually exclusive. If
+individual-level external data are available, one may first fit an
+external model to obtain $`\widetilde{\boldsymbol{\beta}}`$ (and
+optionally $`\mathbf{A}`$), then proceed with KL or Mahalanobis
+integration. Conversely, if only $`\widetilde{\boldsymbol{\beta}}`$ is
+available without curvature information, setting
+$`\mathbf{A} = \mathbf{I}`$ reduces the Mahalanobis distance to the
+squared Euclidean distance, making the Mahalanobis framework applicable
+in this setting as well.*
 
 Throughout all three settings, the **stratified model** is the default
 implementation. The conventional non-stratified model, which assumes a
@@ -232,7 +276,7 @@ cvfit.cox_indi <- cv.cox_indi(
 )
 ```
 
-### 2.2 Kullback–Leibler Divergence Data Integration
+### 2.2 Summary-level External Coefficients / risk scores (via Kullback–Leibler Divergence)
 
 External individual-level data are often inaccessible due to data
 governance, privacy regulations, or institutional agreements; only
@@ -354,8 +398,8 @@ can be visualized directly using
 cv.plot(cvfit.coxkl)
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-13-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-14-1.png)
 
 - The solid purple curve displays the cross-validated loss across
   different values of $`\eta`$.
@@ -535,8 +579,8 @@ plot(
 )
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-18-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-19-1.png)
 
 For penalized KL-integrated models, the functions
 [`cv.coxkl_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_ridge.md)
@@ -607,8 +651,8 @@ can be used to visualize performance versus $`\eta`$:
 cv.plot(cvfit.coxkl_LASSO)
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-21-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-22-1.png)
 
 The resulting plot displays:
 
@@ -642,7 +686,8 @@ imp.coxkl <- variable_importance(
   stratum = strat_hd,
   beta = beta_external_hd,
   etas = eta_grid_hd,
-  B = 50
+  B = 10,
+  ncores = 10
 )
 ```
 
@@ -661,12 +706,12 @@ focus the visualization on the most stable predictors.
 plot(imp.coxkl, threshold = 0.6, top = 20)
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-23-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-24-1.png)
 
 Classical LASSO tuned via cross-validation performs well for prediction,
 but it is often unstable for variable selection: small perturbations of
-the data or changes in cross-validation splits may lead to different
+the data or changes in cross-val idation splits may lead to different
 selected subsets, particularly in high-dimensional or correlated
 settings. *Stability selection* provides a complementary approach that
 emphasizes reproducibility by repeatedly perturbing the data and
@@ -675,7 +720,7 @@ recording how frequently each variable is selected across subsamples.
 The functions
 [`coxkl_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.StabSelect.md)
 extend the cross-validated elastic-net procedures
-([`cv.coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_enet.md))
+(e.g. [`cv.coxkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.coxkl_enet.md))
 by repeatedly fitting the integrated elastic-net model on multiple
 subsamples (controlled by the parameter `B`). For each subsample, the
 model is fit using its own cross-validated tuning parameters, and the
@@ -693,25 +738,29 @@ coxkl.StabSelect <- coxkl_enet.StabSelect(
   beta = beta_external_hd,
   etas = eta_list,
   cv.criteria = "CIndex_pooled",
-  B = 50
+  B = 50,
+  ncores = 10
 )
 ```
 
-Objects returned by `coxkl_enet.StabSelect` can be visualized using the
-S3 plotting method
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html). Users must
-specify a selection frequency threshold between 0 and 1: variables whose
-selection frequency exceeds this threshold are highlighted in the plot,
-while the remaining variables are displayed in a muted color. The x-axis
+Objects returned by
+[`coxkl_enet.StabSelect()`](https://um-kevinhe.github.io/SurvBregDiv/reference/coxkl_enet.StabSelect.md)
+can be visualized using the S3 plotting method
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html). The x-axis
 corresponds to the penalty parameter $`\lambda`$ on a reversed log10
-scale, and the y-axis shows the selection frequency.
+scale, and the y-axis shows the selection frequency—a continuous measure
+of relative variable importance. Variables with higher selection
+frequencies are more consistently retained across resamples, indicating
+greater importance. Users may optionally specify a `threshold` (between
+0 and 1) to visually distinguish variables with high importance from the
+rest.
 
 ``` r
 plot(coxkl.StabSelect, threshold = 0.7)
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-25-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-26-1.png)
 
 #### Bagging for High-Dimensional Models
 
@@ -751,7 +800,8 @@ bagging.coxkl <- coxkl_enet_bagging(
   beta = beta_external_hd,
   etas = eta_list,
   B = 5,
-  seed = 1
+  seed = 1,
+  ncores = 5
 )
 ```
 
@@ -828,8 +878,8 @@ plot(multi.out,
      criteria     = "CIndex")
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-28-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-29-1.png)
 
 Each curve traces the performance of one external source across the
 $`\eta`$ grid, from $`\eta = 0`$ to $`\eta = \eta_{\max}`$. The shape of
@@ -842,7 +892,7 @@ performance continues to improve or remains stable at larger values of
 $`\eta`$ signals that the external model is well-aligned with the
 internal population, and a higher degree of transfer is warranted.
 
-### 2.3 Mahalanobis Distance Data Integration
+### 2.3 Summary-level External Coefficients / risk scores + Curvature (via Mahalanobis distance)
 
 Compared with [Kullback–Leibler Divergence Data
 Integration](#sec_coxkl), the Mahalanobis distance approach is
@@ -912,8 +962,8 @@ plot(
 ) 
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-30-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-31-1.png)
 
 The function
 [`cv.cox_MDTL()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL.md)
@@ -949,8 +999,8 @@ can be visualized directly using
 cv.plot(cvfit.cox_MDTL)
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-32-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-33-1.png)
 
 #### High-Dimensional Integration
 
@@ -1055,8 +1105,8 @@ plot(
 )
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-35-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-36-1.png)
 
 For penalized KL-integrated models, the functions
 [`cv.cox_MDTL_ridge()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.cox_MDTL_ridge.md)
@@ -1200,8 +1250,8 @@ plot(
 )
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-39-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-40-1.png)
 
 Cross-validation for tuning $`\eta`$ can be performed via
 [`cv.clogitkl()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl.md),
@@ -1242,8 +1292,8 @@ The cross-validated performance curve can be visualized using
 cv.plot(cv.clogitkl.fit_breslow)
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-41-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-42-1.png)
 
 The plot displays a purple curve tracing the cross-validated performance
 across the $`\eta`$ grid, a green dotted horizontal line representing
@@ -1300,8 +1350,8 @@ plot(
 )
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-44-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-45-1.png)
 
 Cross-validation for tuning $`\eta`$ can be performed via
 [`cv.clogitkl_enet()`](https://um-kevinhe.github.io/SurvBregDiv/reference/cv.clogitkl_enet.md):
@@ -1327,8 +1377,8 @@ The cross-validated performance curve can be visualized using
 cv.plot(cv.clogitkl_enet_fit)
 ```
 
-![Plot generated in survkl
-vignette](SurvBregDiv_files/figure-html/unnamed-chunk-46-1.png)
+![Plot generated in SurvBregDiv
+vignette](SurvBregDiv_files/figure-html/unnamed-chunk-47-1.png)
 
 The plot displays a purple curve tracing the cross-validated performance
 across the $`\eta`$ grid, a green dotted horizontal line representing

@@ -82,6 +82,7 @@ a single split of the data.</p>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  B <span class="op">=</span> <span class="fl">50</span>,</span>
 <span>  fraction_sample <span class="op">=</span> <span class="fl">0.5</span>,</span>
+<span>  ncores <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -174,6 +175,10 @@ stability selection. Default is <code>50</code>.</p></dd>
 <dd><p>Numeric in <code>(0, 1]</code>. Fraction of the original
 sample size used in each replicate (without replacement if subsampling is
 used). Default is <code>0.5</code>.</p></dd>
+
+
+<dt id="arg-ncores">ncores<a class="anchor" aria-label="anchor" href="#arg-ncores"></a></dt>
+<dd><p>Integer. Number of parallel cores. Default 1 (sequential execution).</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

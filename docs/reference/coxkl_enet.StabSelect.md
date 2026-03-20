@@ -28,6 +28,7 @@ coxkl_enet.StabSelect(
   seed = NULL,
   B = 50,
   fraction_sample = 0.5,
+  ncores = 1,
   ...
 )
 ```
@@ -129,6 +130,10 @@ coxkl_enet.StabSelect(
   Numeric in `(0, 1]`. Fraction of the original sample size used in each
   replicate (without replacement if subsampling is used). Default is
   `0.5`.
+
+- ncores:
+
+  Integer. Number of parallel cores. Default 1 (sequential execution).
 
 - ...:
 

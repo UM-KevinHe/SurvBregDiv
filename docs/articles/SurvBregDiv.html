@@ -94,51 +94,73 @@ conditional logistic regression on sampled risk sets.</p>
 Depending on the type of external data available, the package
 supports:</p>
 <ul>
-<li>
-<strong>Individual-level data</strong>: when full covariate and
+<li><p><strong>Individual-level data</strong>: when full covariate and
 outcome data from an external cohort are accessible, integration is
-performed via a weighted pseudo-likelihood framework.</li>
-<li>
-<strong>Coefficient-level summaries</strong>: when only external
+performed via a weighted pseudo-likelihood framework.</p></li>
+<li><p><strong>Coefficient-level summaries</strong>: when only external
 regression coefficients
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math>
+or external risk scores
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>Z</mi><mo>,</mo><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">r(Z,\widetilde{\boldsymbol{\beta}})</annotation></semantics></math>
 are available, integration proceeds via Kullback–Leibler divergence
-penalization.</li>
+penalization.</p></li>
 <li>
-<strong>Coefficient + curvature summaries</strong>: when an
-additional positive semidefinite matrix
+<p><strong>Coefficient + curvature summaries</strong>: when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math>
+or
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>Z</mi><mo>,</mo><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">r(Z,\widetilde{\boldsymbol{\beta}})</annotation></semantics></math>
+are available, with an additional positive semidefinite matrix
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝐀</mi><annotation encoding="application/x-tex">\mathbf{A}</annotation></semantics></math>
 (e.g., information matrix or variance–covariance matrix) is provided,
-integration proceeds via Mahalanobis distance penalization.</li>
+integration proceeds via Mahalanobis distance penalization.</p>
+<p><em>Note: These three modes are not mutually exclusive. If
+individual-level external data are available, one may first fit an
+external model to obtain
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math>
+(and optionally
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝐀</mi><annotation encoding="application/x-tex">\mathbf{A}</annotation></semantics></math>),
+then proceed with KL or Mahalanobis integration. Conversely, if only
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math>
+is available without curvature information, setting
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝐀</mi><mo>=</mo><mi>𝐈</mi></mrow><annotation encoding="application/x-tex">\mathbf{A} = \mathbf{I}</annotation></semantics></math>
+reduces the Mahalanobis distance to the squared Euclidean distance,
+making the Mahalanobis framework applicable in this setting as
+well.</em></p>
+</li>
 </ul>
-<p><strong>Robustness to clustered and tied event times
-data</strong><br>
-The package accounts for two structural features common in real-world
-survival data. Between-cluster heterogeneity arising from multi-site
-enrollment, matched designs, or hierarchical sampling is accommodated
-via stratified partial likelihoods, which allow the baseline hazard to
-vary freely across strata rather than imposing a common baseline. Tied
-event times frequently occur when follow-up is recorded on a coarse time
-scale such as daily records, scheduled clinical visits, or discretized
-follow-up intervals, and are handled through tie-correction methods.</p>
+<p><strong>Robustness to clustered data</strong><br>
+Real-world survival data often exhibit between-cluster heterogeneity due
+to multi-site enrollment, matched case-control designs, or hierarchical
+sampling structures. Ignoring such clustering can lead to biased hazard
+ratio estimates and invalid standard errors. The package addresses this
+issue through stratified partial likelihoods, which allow the baseline
+hazard function to vary freely across strata rather than imposing a
+common baseline.</p>
+<p><strong>Robustness to tied event times</strong><br>
+Tied event times frequently arise when follow-up is recorded on a coarse
+time scale, such as daily records, scheduled clinical visits, or
+discretized follow-up intervals. Direct application to heavily tied data
+on the standard Cox partial likelihood (which assumes a continuous time
+scale with no ties) can produce biased estimates due to incorrect
+probability construction. The package incorporates tie-correction
+methods—including the Breslow and Efron approximations—to adjust the
+risk set contributions at tied event times and restore the validity of
+partial likelihood inference.</p>
 <p><strong>High-dimensional variable selection</strong> Penalized
 estimation with ridge, lasso, and elastic net penalties is supported for
 variable selection and shrinkage, with tuning parameters selected via
-cross-validation as default. However, cross-validation optimizes
+cross-validation by default. However, cross-validation optimizes
 predictive performance rather than variable selection stability, and the
-selected predictor set can vary considerably across repeated runs or
-minor perturbations of the data. For settings where a reproducible and
-trustworthy shortlist of predictors is needed, stability selection is
-also available, which aggregates variable inclusion frequencies across
-subsamples to identify predictors that are consistently selected
-regardless of which subjects happen to be in the training set.</p>
+selected predictor set can vary across repeated runs or minor data
+perturbations. For users who need a reproducible and trustworthy
+shortlist of important predictors, the package provides a stability
+selection-based variable importance feature that identifies predictors
+consistently selected across resampled datasets.</p>
 <p><strong>Ensemble integration via bagged estimation</strong><br>
-Besides cross-validated LASSO and stability selection, the package
-supports an ensemble strategy that combines bootstrapping, external-data
-integration, and model aggregation—conceptually similar to bootstrap
-aggregation (bagging). This bagged integration approach reduces variance
-and improves predictive robustness compared to relying solely on a
-single cross-validated integrated LASSO model.</p>
+The package supports an ensemble strategy that combines bootstrapping,
+external-data integration, and model aggregation. This bagged
+integration approach reduces variance and improves predictive robustness
+compared to relying on a single cross-validated integrated model.</p>
 <p><strong>Flexible cross-validation criteria</strong><br>
 Model tuning supports a broad range of cross-validation criteria.
 Discrimination- based measures include Harrell’s concordance index
@@ -156,6 +178,18 @@ a pre-specified sequence of candidate values, and (ii) an adaptive
 tuning strategy using Bayesian optimization to directly explore the
 integration weight space, which is particularly efficient when
 evaluating each candidate is computationally expensive.</p>
+</div>
+<div class="section level3">
+<h3 id="package-workflow-overview">Package Workflow Overview<a class="anchor" aria-label="anchor" href="#package-workflow-overview"></a>
+</h3>
+<p>The following flowchart illustrates the overall workflow of the
+<code>SurvBregDiv</code> package. Users first select a study design
+(full-cohort Cox model or nested case–control), then choose an
+integration strategy based on the type of external information
+available. The package supports both low-dimensional estimation and
+high-dimensional penalized regression, with a suite of cross-cutting
+features applicable across methods.
+<img src="../reference/figures/SurvBregDiv_flowchart.svg" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="100%"></p>
 <hr>
 <p>This vignette walks through the main functions with worked examples
 for each setting. The package supports coefficient estimation for
@@ -188,30 +222,45 @@ Integration</a>.</li>
 supports three broad methodological settings, each implemented through a
 corresponding set of functions:</p>
 <ol style="list-style-type: decimal">
-<li><p><a href="#sec_indi">Individual-Level External Data
-Integration</a> When individual-level external data are accessible
-(e.g., for time-to-event outcomes, the user has covariates, survival
-outcomes, and follow-up times from an external cohort), the software
-provides the function such as <code><a href="../reference/cox_indi.html">cox_indi()</a></code> and related
-downstream utilities. These functions implement data integration through
-a weighted pseudo-likelihood framework <span class="citation">(Wang and
-Zidek 2005; Gao and Carroll 2017)</span>.</p></li>
-<li><p><a href="#sec_coxkl">Kullback–Leibler Divergence Data
-Integration</a> If, due to practical or regulatory constraints, the
-external source can provide only summary-level estimated regression
+<li><p><a href="#sec_indi">Individual-Level External Data (via weighted
+pseudo-likelihood)</a> When individual-level external data are
+accessible (e.g., for time-to-event outcomes, the user has covariates,
+survival outcomes, and follow-up times from an external cohort), the
+software provides the function such as <code><a href="../reference/cox_indi.html">cox_indi()</a></code> and
+related downstream utilities. These functions implement data integration
+through a weighted pseudo-likelihood framework <span class="citation">(Wang and Zidek 2005; Gao and Carroll
+2017)</span>.</p></li>
+<li><p><a href="#sec_coxkl">Summary-level External Coefficients / risk
+scores (via KL divergence)</a> When only summary-level regression
 coefficients
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math>,
-the user can perform data integration via the Kullback–Leibler
-divergence.</p></li>
-<li><p><a href="#sec_coxmaha">Mahalanobis Distance Data Integration</a>
-If, in addition to estimated external regression coefficients, the user
-can also provide a positive semidefinite matrix
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math>
+or external risk scores
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>𝐙</mi><mo>,</mo><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">r(\mathbf{Z}, \widetilde{\boldsymbol{\beta}})</annotation></semantics></math>
+are available, the user can perform data integration via the
+Kullback–Leibler divergence.</p></li>
+<li><p><a href="#sec_coxmaha">Summary-level External Coefficients / risk
+scores + Curvature (via Mahalanobis distance)</a> When
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math>
+or
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mrow><mo stretchy="true" form="prefix">(</mo><mi>𝐙</mi><mo>,</mo><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">r(\mathbf{Z}, \widetilde{\boldsymbol{\beta}})</annotation></semantics></math>
+are available along with a positive semidefinite matrix
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝐀</mi><annotation encoding="application/x-tex">\mathbf{A}</annotation></semantics></math>
-summarizing the curvature of the external objective function (e.g., an
-information matrix, a variance–covariance matrix, or variance
-information only), the user can perform data integration via the
-quadratic Mahalanobis distance.</p></li>
+(e.g., information or variance–covariance matrix), the user can perform
+data integration via the quadratic Mahalanobis distance.</p></li>
 </ol>
+<p><em>Note: These three settings are not mutually exclusive. If
+individual-level external data are available, one may first fit an
+external model to obtain
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math>
+(and optionally
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝐀</mi><annotation encoding="application/x-tex">\mathbf{A}</annotation></semantics></math>),
+then proceed with KL or Mahalanobis integration. Conversely, if only
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝛃</mi><mo accent="true">̃</mo></mover><annotation encoding="application/x-tex">\widetilde{\boldsymbol{\beta}}</annotation></semantics></math>
+is available without curvature information, setting
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝐀</mi><mo>=</mo><mi>𝐈</mi></mrow><annotation encoding="application/x-tex">\mathbf{A} = \mathbf{I}</annotation></semantics></math>
+reduces the Mahalanobis distance to the squared Euclidean distance,
+making the Mahalanobis framework applicable in this setting as
+well.</em></p>
 <p>Throughout all three settings, the <strong>stratified model</strong>
 is the default implementation. The conventional non-stratified model,
 which assumes a shared baseline hazard for all observations, is treated
@@ -307,7 +356,8 @@ criterion.</p>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="sec_coxkl">2.2 Kullback–Leibler Divergence Data Integration<a class="anchor" aria-label="anchor" href="#sec_coxkl"></a>
+<h3 id="sec_coxkl">2.2 Summary-level External Coefficients / risk scores (via
+Kullback–Leibler Divergence)<a class="anchor" aria-label="anchor" href="#sec_coxkl"></a>
 </h3>
 <p>External individual-level data are often inaccessible due to data
 governance, privacy regulations, or institutional agreements; only
@@ -412,7 +462,7 @@ functions <code><a href="../reference/cv.coxkl.html">cv.coxkl()</a></code> can b
 <code><a href="../reference/cv.plot.html">cv.plot()</a></code>:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cv.plot.html">cv.plot</a></span><span class="op">(</span><span class="va">cvfit.coxkl</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-14-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <ul>
 <li>The solid purple curve displays the cross-validated loss across
 different values of
@@ -613,7 +663,7 @@ the loss reaches its minimum on the evaluated grid.</li>
 <span>  test_stratum <span class="op">=</span> <span class="va">test_hd</span><span class="op">$</span><span class="va">stratum</span>,</span>
 <span>  criteria     <span class="op">=</span> <span class="st">"loss"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-18-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-19-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>For penalized KL-integrated models, the functions
 <code><a href="../reference/cv.coxkl_ridge.html">cv.coxkl_ridge()</a></code> and <code><a href="../reference/cv.coxkl_enet.html">cv.coxkl_enet()</a></code> perform
 K-fold cross-validation to tune the integration parameter
@@ -686,7 +736,7 @@ performance versus
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cv.plot.html">cv.plot</a></span><span class="op">(</span><span class="va">cvfit.coxkl_LASSO</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-21-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-22-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>The resulting plot displays:</p>
 <ul>
 <li>a purple curve showing the cross-validated performance across the
@@ -723,7 +773,8 @@ bootstrap replications.</p>
 <span>  stratum <span class="op">=</span> <span class="va">strat_hd</span>,</span>
 <span>  beta <span class="op">=</span> <span class="va">beta_external_hd</span>,</span>
 <span>  etas <span class="op">=</span> <span class="va">eta_grid_hd</span>,</span>
-<span>  B <span class="op">=</span> <span class="fl">50</span></span>
+<span>  B <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  ncores <span class="op">=</span> <span class="fl">10</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>After computing variable importance based on bootstrap selection
 frequencies, users can further call the generic <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>
@@ -736,25 +787,25 @@ variables to display can be used to focus the visualization on the most
 stable predictors.</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">imp.coxkl</span>, threshold <span class="op">=</span> <span class="fl">0.6</span>, top <span class="op">=</span> <span class="fl">20</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-23-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-24-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>Classical LASSO tuned via cross-validation performs well for
 prediction, but it is often unstable for variable selection: small
-perturbations of the data or changes in cross-validation splits may lead
-to different selected subsets, particularly in high-dimensional or
+perturbations of the data or changes in cross-val idation splits may
+lead to different selected subsets, particularly in high-dimensional or
 correlated settings. <em>Stability selection</em> provides a
 complementary approach that emphasizes reproducibility by repeatedly
 perturbing the data and recording how frequently each variable is
 selected across subsamples.</p>
 <p>The functions <code><a href="../reference/coxkl_enet.StabSelect.html">coxkl_enet.StabSelect()</a></code> extend the
-cross-validated elastic-net procedures (<code><a href="../reference/cv.coxkl_enet.html">cv.coxkl_enet()</a></code>) by
-repeatedly fitting the integrated elastic-net model on multiple
-subsamples (controlled by the parameter <code>B</code>). For each
-subsample, the model is fit using its own cross-validated tuning
-parameters, and the selection status of each variable along the
-regularization path is recorded. The function returns the empirical
-selection frequency of each variable across resamples and across the
-entire penalty path, providing a stability-oriented summary of variable
-importance.</p>
+cross-validated elastic-net procedures
+(e.g. <code><a href="../reference/cv.coxkl_enet.html">cv.coxkl_enet()</a></code>) by repeatedly fitting the integrated
+elastic-net model on multiple subsamples (controlled by the parameter
+<code>B</code>). For each subsample, the model is fit using its own
+cross-validated tuning parameters, and the selection status of each
+variable along the regularization path is recorded. The function returns
+the empirical selection frequency of each variable across resamples and
+across the entire penalty path, providing a stability-oriented summary
+of variable importance.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">coxkl.StabSelect</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/coxkl_enet.StabSelect.html">coxkl_enet.StabSelect</a></span><span class="op">(</span></span>
 <span>  z <span class="op">=</span> <span class="va">z_hd</span>,</span>
@@ -764,20 +815,22 @@ importance.</p>
 <span>  beta <span class="op">=</span> <span class="va">beta_external_hd</span>,</span>
 <span>  etas <span class="op">=</span> <span class="va">eta_list</span>,</span>
 <span>  cv.criteria <span class="op">=</span> <span class="st">"CIndex_pooled"</span>,</span>
-<span>  B <span class="op">=</span> <span class="fl">50</span></span>
+<span>  B <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  ncores <span class="op">=</span> <span class="fl">10</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Objects returned by <code>coxkl_enet.StabSelect</code> can be
-visualized using the S3 plotting method <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>. Users must
-specify a selection frequency threshold between 0 and 1: variables whose
-selection frequency exceeds this threshold are highlighted in the plot,
-while the remaining variables are displayed in a muted color. The x-axis
+<p>Objects returned by <code><a href="../reference/coxkl_enet.StabSelect.html">coxkl_enet.StabSelect()</a></code> can be
+visualized using the S3 plotting method <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>. The x-axis
 corresponds to the penalty parameter
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math>
 on a reversed log10 scale, and the y-axis shows the selection
-frequency.</p>
+frequency—a continuous measure of relative variable importance.
+Variables with higher selection frequencies are more consistently
+retained across resamples, indicating greater importance. Users may
+optionally specify a <code>threshold</code> (between 0 and 1) to
+visually distinguish variables with high importance from the rest.</p>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">coxkl.StabSelect</span>, threshold <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-25-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-26-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 </div>
 <div class="section level4">
 <h4 id="sec_bagging">Bagging for High-Dimensional Models<a class="anchor" aria-label="anchor" href="#sec_bagging"></a>
@@ -812,7 +865,8 @@ ensemble.</p>
 <span>  beta <span class="op">=</span> <span class="va">beta_external_hd</span>,</span>
 <span>  etas <span class="op">=</span> <span class="va">eta_list</span>,</span>
 <span>  B <span class="op">=</span> <span class="fl">5</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">1</span></span>
+<span>  seed <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  ncores <span class="op">=</span> <span class="fl">5</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The returned object contains the bagged coefficient estimate (stored
 in <code>bagging.coxkl$best_beta</code>) as well as the all
@@ -887,7 +941,7 @@ for each external source, overlaid on a single figure.</p>
 <span>     test_delta   <span class="op">=</span> <span class="va">test_hd</span><span class="op">$</span><span class="va">status</span>,</span>
 <span>     test_stratum <span class="op">=</span> <span class="va">test_hd</span><span class="op">$</span><span class="va">stratum</span>,</span>
 <span>     criteria     <span class="op">=</span> <span class="st">"CIndex"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-28-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-29-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>Each curve traces the performance of one external source across the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>
 grid, from
@@ -908,7 +962,8 @@ population, and a higher degree of transfer is warranted.</p>
 </div>
 </div>
 <div class="section level3">
-<h3 id="sec_coxmaha">2.3 Mahalanobis Distance Data Integration<a class="anchor" aria-label="anchor" href="#sec_coxmaha"></a>
+<h3 id="sec_coxmaha">2.3 Summary-level External Coefficients / risk scores + Curvature
+(via Mahalanobis distance)<a class="anchor" aria-label="anchor" href="#sec_coxmaha"></a>
 </h3>
 <p>Compared with <a href="#sec_coxkl">Kullback–Leibler Divergence Data
 Integration</a>, the Mahalanobis distance approach is applicable when
@@ -976,7 +1031,7 @@ computed using the test set instead:</p>
 <span>  test_stratum <span class="op">=</span> <span class="va">test</span><span class="op">$</span><span class="va">stratum</span>,</span>
 <span>  criteria     <span class="op">=</span> <span class="st">"loss"</span></span>
 <span><span class="op">)</span> </span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-30-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-31-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>The function <code><a href="../reference/cv.cox_MDTL.html">cv.cox_MDTL()</a></code> performs
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>K</mi><annotation encoding="application/x-tex">K</annotation></semantics></math>-fold
 cross-validation (default
@@ -1004,7 +1059,7 @@ functions <code><a href="../reference/cv.cox_MDTL.html">cv.cox_MDTL()</a></code>
 <code><a href="../reference/cv.plot.html">cv.plot()</a></code>:</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cv.plot.html">cv.plot</a></span><span class="op">(</span><span class="va">cvfit.cox_MDTL</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-32-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-33-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 </div>
 <div class="section level4">
 <h4 id="sec_coxMD_high">High-Dimensional Integration<a class="anchor" aria-label="anchor" href="#sec_coxMD_high"></a>
@@ -1113,7 +1168,7 @@ the loss reaches its minimum on the evaluated grid.</li>
 <span>  test_stratum <span class="op">=</span> <span class="va">test_hd</span><span class="op">$</span><span class="va">stratum</span>,</span>
 <span>  criteria     <span class="op">=</span> <span class="st">"loss"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-35-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-36-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>For penalized KL-integrated models, the functions
 <code><a href="../reference/cv.cox_MDTL_ridge.html">cv.cox_MDTL_ridge()</a></code> and <code><a href="../reference/cv.cox_MDTL_enet.html">cv.cox_MDTL_enet()</a></code>
 perform K-fold cross-validation to tune the integration parameter
@@ -1256,7 +1311,7 @@ computed using the test set instead:</p>
 <span>  test_stratum <span class="op">=</span> <span class="va">test.cc</span><span class="op">$</span><span class="va">stratum</span>,</span>
 <span>  criteria     <span class="op">=</span> <span class="st">"loss"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-39-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-40-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>Cross-validation for tuning
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>
 can be performed via <code><a href="../reference/cv.clogitkl.html">cv.clogitkl()</a></code>, which performs K-fold
@@ -1291,7 +1346,7 @@ to determine an appropriate range. (For ridge, use
 <code><a href="../reference/cv.plot.html">cv.plot()</a></code>:</p>
 <div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cv.plot.html">cv.plot</a></span><span class="op">(</span><span class="va">cv.clogitkl.fit_breslow</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-41-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-42-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>The plot displays a purple curve tracing the cross-validated
 performance across the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>
@@ -1344,7 +1399,7 @@ method:</p>
 <span>  test_stratum <span class="op">=</span> <span class="va">test.cc_hd</span><span class="op">$</span><span class="va">stratum</span>,</span>
 <span>  criteria     <span class="op">=</span> <span class="st">"loss"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-44-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-45-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>Cross-validation for tuning
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>
 can be performed via <code><a href="../reference/cv.clogitkl_enet.html">cv.clogitkl_enet()</a></code>:</p>
@@ -1364,7 +1419,7 @@ can be performed via <code><a href="../reference/cv.clogitkl_enet.html">cv.clogi
 <code><a href="../reference/cv.plot.html">cv.plot()</a></code>:</p>
 <div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/cv.plot.html">cv.plot</a></span><span class="op">(</span><span class="va">cv.clogitkl_enet_fit</span><span class="op">)</span></span></code></pre></div>
-<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-46-1.png" class="r-plt" alt="Plot generated in survkl vignette" width="700"></p>
+<p><img src="SurvBregDiv_files/figure-html/unnamed-chunk-47-1.png" class="r-plt" alt="Plot generated in SurvBregDiv vignette" width="700"></p>
 <p>The plot displays a purple curve tracing the cross-validated
 performance across the
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>η</mi><annotation encoding="application/x-tex">\eta</annotation></semantics></math>

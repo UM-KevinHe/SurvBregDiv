@@ -32,6 +32,7 @@
 #'   evaluation (may differ from model stratification).
 #' @param message Logical indicating whether to print progress. Default is \code{FALSE}.
 #' @param seed Optional integer seed for reproducibility.
+#' @param ncores Integer. Number of parallel cores. Default 1 (sequential execution).
 #' @param ... Additional arguments passed to \code{cv.cox_MDTL_enet}.
 #'
 #' @return
@@ -77,7 +78,7 @@ cox_MDTL_enet_bagging <- function(z, delta, time, stratum = NULL, beta = NULL, v
                                   nfolds = 5,
                                   cv.criteria = c("V&VH", "LinPred", "CIndex_pooled", "CIndex_foldaverage"),
                                   c_index_stratum = NULL,
-                                  message = FALSE, seed = NULL, ...) {
+                                  message = FALSE, seed = NULL, ncores = 1, ...) {
 
   cv.criteria <- match.arg(cv.criteria)
 
@@ -99,17 +100,17 @@ cox_MDTL_enet_bagging <- function(z, delta, time, stratum = NULL, beta = NULL, v
     stratum_full <- stratum
   }
 
-  if (!is.null(seed)) set.seed(seed)
+  ncores <- max(1L, as.integer(ncores))
 
-  res_list <- vector("list", B)
+  # Capture ... for passing to workers
+  dots <- list(...)
 
-  if (message) {
-    cat("Starting Bagging (B =", B, ") for cv.cox_MDTL_enet:\n")
-    pb <- txtProgressBar(min = 0, max = B, style = 3)
-  }
-
-  for (i in seq_len(B)) {
-    # 1. Bootstrap sampling of the INTERNAL data
+  # Define worker function
+  boot_one <- function(i, z, delta, time, stratum_full, beta, vcov, etas, alpha,
+                       lambda, nlambda, lambda.min.ratio, nfolds, cv.criteria,
+                       c_index_stratum, p, seed, dots) {
+    if (!is.null(seed)) set.seed(seed + i)
+    n <- nrow(z)
     boot_idx <- sort(sample(seq_len(n), size = n, replace = TRUE))
 
     z_b       <- z[boot_idx, , drop = FALSE]
@@ -124,45 +125,77 @@ cox_MDTL_enet_bagging <- function(z, delta, time, stratum = NULL, beta = NULL, v
       c_idx_strat_b <- c_index_stratum[boot_idx]
     }
 
-    # 2. Fit cv.cox_MDTL_enet on bootstrapped data
     fit_res <- tryCatch({
-      cv.cox_MDTL_enet(
-        z = z_b,
-        delta = delta_b,
-        time = time_b,
-        stratum = stratum_b,
-        beta = beta,      # Fixed external beta
-        vcov = vcov,      # Fixed external vcov
-        etas = etas,
-        alpha = alpha,    # Passed alpha
-        lambda = lambda,
-        nlambda = nlambda,
-        lambda.min.ratio = lambda.min.ratio,
-        nfolds = nfolds,
-        cv.criteria = cv.criteria,
-        c_index_stratum = c_idx_strat_b,
-        message = FALSE,  # Suppress inner loop messages
-        ...
-      )
+      do.call(cv.cox_MDTL_enet, c(
+        list(
+          z = z_b,
+          delta = delta_b,
+          time = time_b,
+          stratum = stratum_b,
+          beta = beta,
+          vcov = vcov,
+          etas = etas,
+          alpha = alpha,
+          lambda = lambda,
+          nlambda = nlambda,
+          lambda.min.ratio = lambda.min.ratio,
+          nfolds = nfolds,
+          cv.criteria = cv.criteria,
+          c_index_stratum = c_idx_strat_b,
+          message = FALSE
+        ),
+        dots
+      ))
     }, error = function(e) {
-      # Handle convergence failures gracefully
       return(NULL)
     })
 
-    # 3. Store result
     if (!is.null(fit_res)) {
-      # Extract the beta corresponding to the best (eta, lambda) combination
-      res_list[[i]] <- as.vector(fit_res$best$best_beta)
+      return(as.vector(fit_res$best$best_beta))
     } else {
-      res_list[[i]] <- rep(NA, p)
+      return(rep(NA, p))
     }
-
-    if (message) setTxtProgressBar(pb, i)
   }
 
-  if (message) close(pb)
+  if (message) cat("Starting Bagging (B =", B, ") for cv.cox_MDTL_enet on", ncores, "core(s)...\n")
 
-  # 4. Aggregate results
+  if (ncores == 1L) {
+    # Sequential execution with progress bar
+    if (message) pb <- txtProgressBar(min = 0, max = B, style = 3)
+    res_list <- vector("list", B)
+    for (i in seq_len(B)) {
+      if (!is.null(seed)) set.seed(seed + i)
+      res_list[[i]] <- boot_one(i, z, delta, time, stratum_full, beta, vcov, etas, alpha,
+                                lambda, nlambda, lambda.min.ratio, nfolds, cv.criteria,
+                                c_index_stratum, p, seed, dots)
+      if (message) setTxtProgressBar(pb, i)
+    }
+    if (message) close(pb)
+  } else {
+    # Parallel execution
+    cl <- parallel::makeCluster(ncores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+
+    # Set up parallel RNG
+    if (!is.null(seed)) {
+      RNGkind("L'Ecuyer-CMRG")
+      set.seed(seed)
+      parallel::clusterSetRNGStream(cl, seed)
+    }
+
+    res_list <- parallel::parLapply(
+      cl, seq_len(B), boot_one,
+      z = z, delta = delta, time = time, stratum_full = stratum_full,
+      beta = beta, vcov = vcov, etas = etas, alpha = alpha,
+      lambda = lambda, nlambda = nlambda, lambda.min.ratio = lambda.min.ratio,
+      nfolds = nfolds, cv.criteria = cv.criteria,
+      c_index_stratum = c_index_stratum, p = p, seed = seed, dots = dots
+    )
+  }
+
+  if (message) cat("Done.\n")
+
+  # Aggregate results
   res_mat <- do.call(cbind, res_list)
 
   # Check for failed runs (NA columns)
@@ -191,3 +224,8 @@ cox_MDTL_enet_bagging <- function(z, delta, time, stratum = NULL, beta = NULL, v
     class = "cox_MDTL_bagging"
   )
 }
+
+
+
+
+

@@ -37,6 +37,7 @@
 #'   evaluation.
 #' @param message Logical indicating whether to print progress.
 #' @param seed Optional seed for reproducibility.
+#' @param ncores Integer. Number of parallel cores. Default 1 (sequential execution).
 #' @param ... Additional arguments passed to \code{cv.coxkl_enet}.
 #'
 #' @return
@@ -77,7 +78,7 @@ coxkl_enet_bagging <- function(z, delta, time, stratum = NULL, RS = NULL, beta =
                                lambda.min.ratio = ifelse(nrow(z) < ncol(z), 0.05, 1e-03),
                                nfolds = 5, cv.criteria = c("V&VH", "LinPred", "CIndex_pooled", "CIndex_foldaverage"),
                                c_index_stratum = NULL,
-                               message = FALSE, seed = NULL, ...) {
+                               message = FALSE, seed = NULL, ncores = 1, ...) {
 
   cv.criteria <- match.arg(cv.criteria)
 
@@ -97,13 +98,17 @@ coxkl_enet_bagging <- function(z, delta, time, stratum = NULL, RS = NULL, beta =
     stratum_full <- stratum
   }
 
-  if (!is.null(seed)) set.seed(seed)
+  ncores <- max(1L, as.integer(ncores))
 
-  res_list <- vector("list", B)
+  # Capture ... for passing to workers
+  dots <- list(...)
 
-  if (message) pb <- txtProgressBar(min = 0, max = B, style = 3)
-
-  for (i in seq_len(B)) {
+  # Define worker function
+  boot_one <- function(i, z, delta, time, stratum_full, RS, beta, etas, alpha,
+                       lambda, nlambda, lambda.min.ratio, nfolds, cv.criteria,
+                       c_index_stratum, p, seed, dots) {
+    if (!is.null(seed)) set.seed(seed + i)
+    n <- nrow(z)
     boot_idx <- sort(sample(seq_len(n), size = n, replace = TRUE))
 
     z_b       <- z[boot_idx, , drop = FALSE]
@@ -126,38 +131,74 @@ coxkl_enet_bagging <- function(z, delta, time, stratum = NULL, RS = NULL, beta =
     }
 
     fit_res <- tryCatch({
-      cv.coxkl_enet(
-        z = z_b,
-        delta = delta_b,
-        time = time_b,
-        stratum = stratum_b,
-        RS = RS_b,
-        beta = beta_in,
-        etas = etas,
-        alpha = alpha,
-        lambda = lambda,
-        nlambda = nlambda,
-        lambda.min.ratio = lambda.min.ratio,
-        nfolds = nfolds,
-        cv.criteria = cv.criteria,
-        c_index_stratum = c_idx_strat_b,
-        message = FALSE,
-        ...
-      )
+      do.call(cv.coxkl_enet, c(
+        list(
+          z = z_b,
+          delta = delta_b,
+          time = time_b,
+          stratum = stratum_b,
+          RS = RS_b,
+          beta = beta_in,
+          etas = etas,
+          alpha = alpha,
+          lambda = lambda,
+          nlambda = nlambda,
+          lambda.min.ratio = lambda.min.ratio,
+          nfolds = nfolds,
+          cv.criteria = cv.criteria,
+          c_index_stratum = c_idx_strat_b,
+          message = FALSE
+        ),
+        dots
+      ))
     }, error = function(e) {
       return(NULL)
     })
 
     if (!is.null(fit_res)) {
-      res_list[[i]] <- as.vector(fit_res$best$best_beta)
+      return(as.vector(fit_res$best$best_beta))
     } else {
-      res_list[[i]] <- rep(NA, p)
+      return(rep(NA, p))
     }
-
-    if (message) setTxtProgressBar(pb, i)
   }
 
-  if (message) close(pb)
+  if (message) cat("Running", B, "bootstrap replicates on", ncores, "core(s)...\n")
+
+  if (ncores == 1L) {
+    # Sequential execution with progress bar
+    if (message) pb <- txtProgressBar(min = 0, max = B, style = 3)
+    res_list <- vector("list", B)
+    for (i in seq_len(B)) {
+      if (!is.null(seed)) set.seed(seed + i)
+      res_list[[i]] <- boot_one(i, z, delta, time, stratum_full, RS, beta, etas, alpha,
+                                lambda, nlambda, lambda.min.ratio, nfolds, cv.criteria,
+                                c_index_stratum, p, seed, dots)
+      if (message) setTxtProgressBar(pb, i)
+    }
+    if (message) close(pb)
+  } else {
+    # Parallel execution
+    cl <- parallel::makeCluster(ncores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+
+    # Set up parallel RNG
+    if (!is.null(seed)) {
+      RNGkind("L'Ecuyer-CMRG")
+      set.seed(seed)
+      parallel::clusterSetRNGStream(cl, seed)
+    }
+
+    res_list <- parallel::parLapply(
+      cl, seq_len(B), boot_one,
+      z = z, delta = delta, time = time, stratum_full = stratum_full,
+      RS = RS, beta = beta, etas = etas, alpha = alpha,
+      lambda = lambda, nlambda = nlambda, lambda.min.ratio = lambda.min.ratio,
+      nfolds = nfolds, cv.criteria = cv.criteria,
+      c_index_stratum = c_index_stratum, p = p, seed = seed, dots = dots
+    )
+  }
+
+  if (message) cat("Done.\n")
 
   res_mat <- do.call(cbind, res_list)
   valid_cols <- !apply(res_mat, 2, function(x) any(is.na(x)))

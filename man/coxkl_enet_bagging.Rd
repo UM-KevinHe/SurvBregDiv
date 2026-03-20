@@ -22,6 +22,7 @@ coxkl_enet_bagging(
   c_index_stratum = NULL,
   message = FALSE,
   seed = NULL,
+  ncores = 1,
   ...
 )
 }
@@ -67,6 +68,8 @@ evaluation.}
 \item{message}{Logical indicating whether to print progress.}
 
 \item{seed}{Optional seed for reproducibility.}
+
+\item{ncores}{Integer. Number of parallel cores. Default 1 (sequential execution).}
 
 \item{...}{Additional arguments passed to \code{cv.coxkl_enet}.}
 }

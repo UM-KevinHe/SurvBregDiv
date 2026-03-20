@@ -28,6 +28,7 @@ cox_MDTL_enet_bagging(
   c_index_stratum = NULL,
   message = FALSE,
   seed = NULL,
+  ncores = 1,
   ...
 )
 ```
@@ -107,6 +108,10 @@ cox_MDTL_enet_bagging(
 - seed:
 
   Optional integer seed for reproducibility.
+
+- ncores:
+
+  Integer. Number of parallel cores. Default 1 (sequential execution).
 
 - ...:
 

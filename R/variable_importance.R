@@ -16,6 +16,7 @@
 #' @param nonzero_tol Numeric tolerance for defining "selected". Default 1e-10.
 #' @param seed Optional integer seed for reproducibility.
 #' @param message Logical. Whether to print progress messages. Default FALSE.
+#' @param ncores Integer. Number of parallel cores. Default 1 (sequential execution).
 #' @param ... Additional arguments passed to \code{cv.coxkl_enet()} (e.g., \code{alpha},
 #'   \code{lambda}, \code{nlambda}, \code{lambda.min.ratio}, \code{nfolds},
 #'   \code{cv.criteria}, \code{c_index_stratum}, etc.).
@@ -36,6 +37,7 @@ variable_importance <- function(
     nonzero_tol = 1e-10,
     seed = NULL,
     message = FALSE,
+    ncores = 1,
     ...
 ) {
   if (is.data.frame(z)) z <- as.matrix(z)
@@ -43,45 +45,40 @@ variable_importance <- function(
   storage.mode(z) <- "double"
   if (!is.numeric(z)) stop("z must be numeric after conversion.", call. = FALSE)
   if (anyNA(z)) stop("z contains NA values. Please impute or remove missing values before fitting.", call. = FALSE)
-
   n <- nrow(z)
   p <- ncol(z)
   if (length(delta) != n) stop("delta length must match nrow(z).", call. = FALSE)
   if (length(time) != n) stop("time length must match nrow(z).", call. = FALSE)
   if (!is.null(stratum) && length(stratum) != n) stop("stratum length must match nrow(z).", call. = FALSE)
   if (B < 1) stop("B must be >= 1.", call. = FALSE)
-
-  if (!is.null(seed)) set.seed(seed)
-
   var_names <- colnames(z)
   if (is.null(var_names)) var_names <- paste0("V", seq_len(p))
 
-  counts <- setNames(integer(p), var_names)
+  ncores <- max(1L, as.integer(ncores))
 
-  if (message) {
-    cat("Bootstrap replications:\n")
-    pb <- txtProgressBar(min = 0, max = B, style = 3, width = 30)
-  }
+  # Capture ... for passing to workers
+  dots <- list(...)
 
-  for (b in seq_len(B)) {
-    idx <- sample.int(n, size = n, replace = TRUE)
-
-    cv_fit <- cv.coxkl_enet(
-      z = z[idx, , drop = FALSE],
-      delta = delta[idx],
-      time = time[idx],
-      stratum = if (is.null(stratum)) NULL else stratum[idx],
-      RS = RS,
-      beta = beta,
-      etas = etas,
-      message = FALSE,
-      seed = if (is.null(seed)) NULL else (seed + b),
-      ...
-    )
-
+  # Define worker function
+  boot_one <- function(b, z, delta, time, stratum, RS, beta, etas, var_names, p, nonzero_tol, seed, dots) {
+    if (!is.null(seed)) set.seed(seed + b)
+    idx <- sample.int(nrow(z), size = nrow(z), replace = TRUE)
+    cv_fit <- do.call(cv.coxkl_enet, c(
+      list(
+        z = z[idx, , drop = FALSE],
+        delta = delta[idx],
+        time = time[idx],
+        stratum = if (is.null(stratum)) NULL else stratum[idx],
+        RS = RS,
+        beta = beta,
+        etas = etas,
+        message = FALSE,
+        seed = if (is.null(seed)) NULL else (seed + b)
+      ),
+      dots
+    ))
     bhat <- cv_fit$best$best_beta
     if (is.null(names(bhat))) names(bhat) <- var_names
-
     if (!all(var_names %in% names(bhat))) {
       tmp <- setNames(rep(0, p), var_names)
       tmp[names(bhat)] <- bhat
@@ -89,17 +86,49 @@ variable_importance <- function(
     } else {
       bhat <- bhat[var_names]
     }
-
-    selected <- abs(bhat) > nonzero_tol
-    counts <- counts + as.integer(selected)
-
-    if (message) setTxtProgressBar(pb, b)
+    as.integer(abs(bhat) > nonzero_tol)
   }
 
-  if (message) close(pb)
+  if (message) cat("Running", B, "bootstrap replications on", ncores, "core(s)...\n")
+
+  if (ncores == 1L) {
+    # Sequential execution with progress bar
+    if (message) pb <- txtProgressBar(min = 0, max = B, style = 3, width = 30)
+    results <- vector("list", B)
+    for (b in seq_len(B)) {
+      results[[b]] <- boot_one(b, z, delta, time, stratum, RS, beta, etas, var_names, p, nonzero_tol, seed, dots)
+      if (message) setTxtProgressBar(pb, b)
+    }
+    if (message) close(pb)
+  } else {
+    # Parallel execution
+    cl <- parallel::makeCluster(ncores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+
+    # Set up parallel RNG
+    if (!is.null(seed)) {
+      RNGkind("L'Ecuyer-CMRG")
+      set.seed(seed)
+      parallel::clusterSetRNGStream(cl, seed)
+    }
+
+    results <- parallel::parLapply(
+      cl, seq_len(B), boot_one,
+      z = z, delta = delta, time = time, stratum = stratum,
+      RS = RS, beta = beta, etas = etas, var_names = var_names,
+      p = p, nonzero_tol = nonzero_tol, seed = seed, dots = dots
+    )
+  }
+
+  # Aggregate counts
+  counts <- setNames(integer(p), var_names)
+  for (sel in results) {
+    counts <- counts + sel
+  }
+
+  if (message) cat("Done.\n")
 
   freq <- counts / B
-
   out <- list(
     freq = freq,
     count = counts,
@@ -110,7 +139,6 @@ variable_importance <- function(
   class(out) <- "variable_importance"
   out
 }
-
 
 
 

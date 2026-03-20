@@ -27,6 +27,7 @@ coxkl_enet_bagging(
   c_index_stratum = NULL,
   message = FALSE,
   seed = NULL,
+  ncores = 1,
   ...
 )
 ```
@@ -104,6 +105,10 @@ coxkl_enet_bagging(
 - seed:
 
   Optional seed for reproducibility.
+
+- ncores:
+
+  Integer. Number of parallel cores. Default 1 (sequential execution).
 
 - ...:
 
