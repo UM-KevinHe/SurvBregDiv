@@ -764,7 +764,9 @@ the model is repeatedly refit on bootstrap resamples of the data, and a
 predictor is recorded as selected if its estimated coefficient is
 nonzero in the cross-validated optimal model. The resulting importance
 score for each variable is defined as its selection frequency across
-bootstrap replications.</p>
+bootstrap replications. For machines that support parallel computing,
+users can specify the <code>ncores</code> argument to accelerate the
+computation.</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">imp.coxkl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/variable_importance.html">variable_importance</a></span><span class="op">(</span></span>
 <span>  z <span class="op">=</span> <span class="va">z_hd</span>,</span>
@@ -773,7 +775,7 @@ bootstrap replications.</p>
 <span>  stratum <span class="op">=</span> <span class="va">strat_hd</span>,</span>
 <span>  beta <span class="op">=</span> <span class="va">beta_external_hd</span>,</span>
 <span>  etas <span class="op">=</span> <span class="va">eta_grid_hd</span>,</span>
-<span>  B <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  B <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  ncores <span class="op">=</span> <span class="fl">10</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>After computing variable importance based on bootstrap selection
@@ -815,7 +817,7 @@ of variable importance.</p>
 <span>  beta <span class="op">=</span> <span class="va">beta_external_hd</span>,</span>
 <span>  etas <span class="op">=</span> <span class="va">eta_list</span>,</span>
 <span>  cv.criteria <span class="op">=</span> <span class="st">"CIndex_pooled"</span>,</span>
-<span>  B <span class="op">=</span> <span class="fl">50</span>,</span>
+<span>  B <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  ncores <span class="op">=</span> <span class="fl">10</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Objects returned by <code><a href="../reference/coxkl_enet.StabSelect.html">coxkl_enet.StabSelect()</a></code> can be

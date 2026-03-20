@@ -676,7 +676,9 @@ applied to the integrated LASSO or elastic-net models fitted by
 bootstrap resamples of the data, and a predictor is recorded as selected
 if its estimated coefficient is nonzero in the cross-validated optimal
 model. The resulting importance score for each variable is defined as
-its selection frequency across bootstrap replications.
+its selection frequency across bootstrap replications. For machines that
+support parallel computing, users can specify the `ncores` argument to
+accelerate the computation.
 
 ``` r
 imp.coxkl <- variable_importance(
@@ -686,7 +688,7 @@ imp.coxkl <- variable_importance(
   stratum = strat_hd,
   beta = beta_external_hd,
   etas = eta_grid_hd,
-  B = 10,
+  B = 100,
   ncores = 10
 )
 ```
@@ -738,7 +740,7 @@ coxkl.StabSelect <- coxkl_enet.StabSelect(
   beta = beta_external_hd,
   etas = eta_list,
   cv.criteria = "CIndex_pooled",
-  B = 50,
+  B = 100,
   ncores = 10
 )
 ```

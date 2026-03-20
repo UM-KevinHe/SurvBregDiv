@@ -459,7 +459,7 @@ The resulting plot displays:
 
 #### Variable Importance and Stability Selection {#sec_var_importance}
 
-For high-dimensional integrated models, users are often interested in identifying predictors that are selected in a stable and reproducible manner under regularization. The function `variable_importance()` assesses variable importance using a bootstrap-based refitting strategy applied to the integrated LASSO or elastic-net models fitted by `cv.coxkl_enet`. Specifically, the model is repeatedly refit on bootstrap resamples of the data, and a predictor is recorded as selected if its estimated coefficient is nonzero in the cross-validated optimal model. The resulting importance score for each variable is defined as its selection frequency across bootstrap replications.
+For high-dimensional integrated models, users are often interested in identifying predictors that are selected in a stable and reproducible manner under regularization. The function `variable_importance()` assesses variable importance using a bootstrap-based refitting strategy applied to the integrated LASSO or elastic-net models fitted by `cv.coxkl_enet`. Specifically, the model is repeatedly refit on bootstrap resamples of the data, and a predictor is recorded as selected if its estimated coefficient is nonzero in the cross-validated optimal model. The resulting importance score for each variable is defined as its selection frequency across bootstrap replications. For machines that support parallel computing, users can specify the `ncores` argument to accelerate the computation.
 
 ```{r, message=FALSE}
 imp.coxkl <- variable_importance(
@@ -469,7 +469,7 @@ imp.coxkl <- variable_importance(
   stratum = strat_hd,
   beta = beta_external_hd,
   etas = eta_grid_hd,
-  B = 50,
+  B = 100,
   ncores = 10
 )
 ```
@@ -485,6 +485,7 @@ Classical LASSO tuned via cross-validation performs well for prediction, but it 
 idation splits may lead to different selected subsets, particularly in high-dimensional or correlated settings. *Stability selection* provides a complementary approach that emphasizes reproducibility by repeatedly perturbing the data and recording how frequently each variable is selected across subsamples.
 
 The functions `coxkl_enet.StabSelect()` extend the cross-validated elastic-net procedures (e.g. `cv.coxkl_enet()`) by repeatedly fitting the integrated elastic-net model on multiple subsamples (controlled by the parameter `B`). For each subsample, the model is fit using its own cross-validated tuning parameters, and the selection status of each variable along the regularization path is recorded. The function returns the empirical selection frequency of each variable across resamples and across the entire penalty path, providing a stability-oriented summary of variable importance.
+
 ```{r}
 coxkl.StabSelect <- coxkl_enet.StabSelect(
   z = z_hd,
@@ -494,7 +495,7 @@ coxkl.StabSelect <- coxkl_enet.StabSelect(
   beta = beta_external_hd,
   etas = eta_list,
   cv.criteria = "CIndex_pooled",
-  B = 50,
+  B = 100,
   ncores = 10
 )
 ```
